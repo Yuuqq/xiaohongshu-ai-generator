@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>精美卡片生成器测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .test-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 2px solid #f0f0f0;
+            border-radius: 15px;
+        }
+
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .result-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .result-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .svg-preview {
+            width: 100%;
+            max-width: 375px;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: white;
+        }
+
+        .prompt-display {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .success {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #3c3;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        @media (max-width: 768px) {
+            .result-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 精美卡片生成器测试</h1>
+            <p>测试基于用户优化建议的新一代小红书卡片生成系统</p>
+        </div>
+
+        <div class="test-section">
+            <h2>📝 内容输入</h2>
+            <div class="input-group">
+                <label for="testContent">测试内容：</label>
+                <textarea id="testContent" placeholder="输入要生成卡片的内容...">🚀 Introducing NSA: A Hardware-Aligned and Natively Trainable Sparse Attention mechanism for ultra-fast long-context training & inference!
+
+Core components of NSA:
+• Dynamic hierarchical sparse strategy
+• Coarse-grained token compression
+• Fine-grained token selection
+
+Performance highlights:
+• Reading speed: 6.6 TiB/s
+• Sorting performance: 3.66 TiB/min
+• KVCache query: 40+ GiB/s
+• Cluster scale: 180 nodes
+
+Why this matters:
+• Makes AI model training and inference data management more efficient
+• Supports data preprocessing, loading and checkpoint storage
+• Faster vector search and inference KVCache queries
+• Separated architecture ensures data consistency
+
+Open source: github.com/deepseek-ai/3FS</textarea>
+            </div>
+
+            <div class="input-group">
+                <label for="templateSelect">选择模板：</label>
+                <select id="templateSelect">
+                    <option value="tech-premium">🚀 技术精美卡片</option>
+                    <option value="lifestyle-premium">🌸 生活精美卡片</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="generatePremiumCard()">🎨 生成精美卡片</button>
+                <button class="btn btn-secondary" onclick="generatePrompt()">📝 生成提示词</button>
+                <button class="btn btn-secondary" onclick="clearResults()">🗑️ 清空结果</button>
+            </div>
+        </div>
+
+        <div id="results" class="result-section" style="display: none;">
+            <div class="result-card">
+                <h3>🖼️ 生成的卡片</h3>
+                <div id="svgPreview"></div>
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-secondary" onclick="downloadSVG()">💾 下载SVG</button>
+                    <button class="btn btn-secondary" onclick="copyToClipboard()">📋 复制代码</button>
+                </div>
+            </div>
+
+            <div class="result-card">
+                <h3>📋 生成的提示词</h3>
+                <div id="promptDisplay" class="prompt-display"></div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <p>🎨 正在生成精美卡片...</p>
+        </div>
+
+        <div id="messages"></div>
+    </div>
+
+    <!-- 引入必要的脚本 -->
+    <script src="assets/js/premium-card-generator.js"></script>
+    <script src="assets/js/premium-prompt-engine.js"></script>
+
+    <script>
+        let currentSVG = '';
+        let currentPrompt = '';
+
+        function showMessage(message, type = 'info') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        function showLoading(show = true) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showResults(show = true) {
+            document.getElementById('results').style.display = show ? 'grid' : 'none';
+        }
+
+        async function generatePremiumCard() {
+            const content = document.getElementById('testContent').value.trim();
+            const templateId = document.getElementById('templateSelect').value;
+
+            if (!content) {
+                showMessage('请输入测试内容', 'error');
+                return;
+            }
+
+            try {
+                showLoading(true);
+                showResults(false);
+
+                // 生成精美卡片
+                const result = await window.premiumCardGenerator.generatePremiumCard(content, templateId);
+                
+                currentSVG = result.svg;
+                
+                // 显示SVG预览
+                const previewDiv = document.getElementById('svgPreview');
+                previewDiv.innerHTML = result.svg;
+
+                // 生成并显示提示词
+                const prompt = window.premiumPromptEngine.generatePremiumPrompt(
+                    content, 
+                    { id: templateId }, 
+                    { name: '专业友好', description: '专业而易懂' }
+                );
+                
+                currentPrompt = prompt;
+                document.getElementById('promptDisplay').textContent = prompt;
+
+                showResults(true);
+                showMessage('精美卡片生成成功！', 'success');
+
+            } catch (error) {
+                console.error('生成失败:', error);
+                showMessage(`生成失败: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function generatePrompt() {
+            const content = document.getElementById('testContent').value.trim();
+            const templateId = document.getElementById('templateSelect').value;
+
+            if (!content) {
+                showMessage('请输入测试内容', 'error');
+                return;
+            }
+
+            try {
+                const prompt = window.premiumPromptEngine.generatePremiumPrompt(
+                    content, 
+                    { id: templateId }, 
+                    { name: '专业友好', description: '专业而易懂' }
+                );
+                
+                currentPrompt = prompt;
+                document.getElementById('promptDisplay').textContent = prompt;
+                
+                // 只显示提示词部分
+                document.getElementById('svgPreview').innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">点击"生成精美卡片"查看SVG预览</p>';
+                showResults(true);
+                showMessage('提示词生成成功！', 'success');
+
+            } catch (error) {
+                console.error('生成提示词失败:', error);
+                showMessage(`生成提示词失败: ${error.message}`, 'error');
+            }
+        }
+
+        function clearResults() {
+            showResults(false);
+            currentSVG = '';
+            currentPrompt = '';
+            document.getElementById('messages').innerHTML = '';
+            showMessage('结果已清空', 'success');
+        }
+
+        function downloadSVG() {
+            if (!currentSVG) {
+                showMessage('没有可下载的SVG', 'error');
+                return;
+            }
+
+            const blob = new Blob([currentSVG], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `premium-card-${Date.now()}.svg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showMessage('SVG下载成功！', 'success');
+        }
+
+        function copyToClipboard() {
+            if (!currentSVG) {
+                showMessage('没有可复制的内容', 'error');
+                return;
+            }
+
+            navigator.clipboard.writeText(currentSVG).then(() => {
+                showMessage('SVG代码已复制到剪贴板！', 'success');
+            }).catch(err => {
+                console.error('复制失败:', err);
+                showMessage('复制失败，请手动复制', 'error');
+            });
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            showMessage('精美卡片生成器已就绪！', 'success');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>步骤3修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .step-indicator {
+            background: #4285f4;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .content-input {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #3367d6;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .original-content, .optimized-content {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            min-height: 80px;
+            background: #f9f9f9;
+        }
+        .content-placeholder {
+            color: #666;
+            font-style: italic;
+        }
+        .content-text {
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .content-meta {
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+        .content-meta span {
+            margin-right: 15px;
+        }
+        .step-content {
+            display: none;
+        }
+        .step-content.active {
+            display: block;
+        }
+        .log {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>步骤3原始内容显示修复测试</h1>
+        <p>这个测试页面用于验证步骤3中原始内容是否正确显示。</p>
+        
+        <!-- 步骤1：内容输入 -->
+        <div class="step-content active" id="step1">
+            <div class="step-indicator">步骤1：内容输入</div>
+            <textarea id="contentInput" class="content-input" placeholder="请输入要生成图片的文字内容...">分享一个超好用的护肤小技巧，让你的皮肤水嫩透亮！每天晚上洁面后，用温水敷脸3分钟，然后涂抹保湿精华，最后用面霜锁水。坚持一周就能看到明显效果哦！</textarea>
+            <button class="btn" onclick="goToStep(2)">下一步</button>
+        </div>
+
+        <!-- 步骤2：风格选择 -->
+        <div class="step-content" id="step2">
+            <div class="step-indicator">步骤2：风格选择</div>
+            <p>选择口吻和模板（模拟选择）</p>
+            <button class="btn" onclick="goToStep(1)">上一步</button>
+            <button class="btn" onclick="goToStep(3)">下一步</button>
+        </div>
+
+        <!-- 步骤3：内容优化 -->
+        <div class="step-content" id="step3">
+            <div class="step-indicator">步骤3：内容优化</div>
+            
+            <h3>原始内容</h3>
+            <div class="original-content" id="originalContent">
+                <div class="content-placeholder">原始内容将在这里显示</div>
+            </div>
+
+            <h3>优化后内容</h3>
+            <div class="optimized-content" id="optimizedContent">
+                <div class="content-placeholder">点击"AI智能优化"按钮开始优化</div>
+            </div>
+
+            <button class="btn" onclick="goToStep(2)">上一步</button>
+            <button class="btn" onclick="simulateOptimization()">AI智能优化</button>
+            <button class="btn" id="nextStep3" disabled onclick="goToStep(4)">下一步</button>
+        </div>
+
+        <!-- 步骤4：预览生成 -->
+        <div class="step-content" id="step4">
+            <div class="step-indicator">步骤4：预览生成</div>
+            <p>预览和生成图片</p>
+            <button class="btn" onclick="goToStep(3)">上一步</button>
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        // 模拟步骤数据
+        const stepData = {
+            content: '',
+            tone: null,
+            template: null,
+            optimizedContent: null
+        };
+
+        let currentStep = 1;
+
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}<br>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function goToStep(step) {
+            log(`跳转到步骤 ${step}`);
+            
+            // 隐藏当前步骤
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            
+            // 显示目标步骤
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            currentStep = step;
+            
+            // 特殊处理
+            if (step === 3) {
+                initializeStep3();
+            }
+        }
+
+        function initializeStep3() {
+            log('初始化步骤3 - 内容优化');
+            
+            // 获取输入的内容
+            const contentInput = document.getElementById('contentInput');
+            stepData.content = contentInput.value.trim();
+            
+            // 显示原始内容
+            const originalContentElement = document.getElementById('originalContent');
+            if (originalContentElement && stepData.content) {
+                originalContentElement.innerHTML = `
+                    <div class="content-text">${stepData.content.replace(/\n/g, '<br>')}</div>
+                    <div class="content-meta">
+                        <span class="content-length">${stepData.content.length} 字符</span>
+                        <span class="content-words">${stepData.content.split(/\s+/).length} 词</span>
+                    </div>
+                `;
+                log('原始内容已显示: ' + stepData.content.substring(0, 50) + '...');
+            } else {
+                log('未找到原始内容或内容为空');
+                if (originalContentElement) {
+                    originalContentElement.innerHTML = '<div class="content-placeholder">未找到原始内容，请返回步骤1重新输入</div>';
+                }
+            }
+
+            // 重置优化内容
+            const optimizedContentElement = document.getElementById('optimizedContent');
+            if (optimizedContentElement) {
+                optimizedContentElement.innerHTML = '<div class="content-placeholder">点击"AI智能优化"按钮开始优化</div>';
+            }
+
+            // 禁用下一步按钮
+            const nextBtn = document.getElementById('nextStep3');
+            if (nextBtn) {
+                nextBtn.disabled = true;
+            }
+
+            log('步骤3初始化完成');
+        }
+
+        function simulateOptimization() {
+            log('开始模拟优化...');
+            
+            const optimizedContentElement = document.getElementById('optimizedContent');
+            const nextBtn = document.getElementById('nextStep3');
+            
+            // 模拟优化过程
+            optimizedContentElement.innerHTML = '<div class="content-placeholder">正在优化中...</div>';
+            
+            setTimeout(() => {
+                const optimizedText = stepData.content + ' ✨💫🌟';
+                optimizedContentElement.innerHTML = `
+                    <div class="content-text">${optimizedText.replace(/\n/g, '<br>')}</div>
+                    <div class="content-meta">
+                        <span class="content-length">${optimizedText.length} 字符</span>
+                        <span class="content-words">${optimizedText.split(/\s+/).length} 词</span>
+                    </div>
+                `;
+                
+                stepData.optimizedContent = optimizedText;
+                nextBtn.disabled = false;
+                log('优化完成');
+            }, 2000);
+        }
+
+        // 初始化
+        log('测试页面已加载');
+        log('当前在步骤1，请输入内容后点击"下一步"进行测试');
+    </script>
+</body>
+</html>

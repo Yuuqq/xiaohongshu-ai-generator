@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>步骤4图片数量修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .step-indicator {
+            background: #4285f4;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .control-label {
+            font-weight: bold;
+            color: #333;
+        }
+        .select-input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn:hover {
+            background: #3367d6;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .btn.secondary {
+            background: #6c757d;
+        }
+        .btn.secondary:hover {
+            background: #5a6268;
+        }
+        .preview-container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #f9f9f9;
+        }
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .image-item {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .image-item:hover {
+            transform: translateY(-2px);
+        }
+        .image-preview {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 12px;
+        }
+        .image-info {
+            padding: 10px;
+            text-align: center;
+        }
+        .image-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .image-meta {
+            font-size: 12px;
+            color: #666;
+        }
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 8px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        .log {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>步骤4图片数量修复测试</h1>
+        <p>测试批量生成功能，验证选择的图片数量是否正确生成。</p>
+        
+        <div class="step-indicator">步骤4：预览生成</div>
+
+        <!-- Generation Settings -->
+        <div class="settings-grid">
+            <div class="control-group">
+                <label for="imageCount" class="control-label">生成数量</label>
+                <select id="imageCount" class="select-input">
+                    <option value="1">1张图片</option>
+                    <option value="2">2张图片</option>
+                    <option value="3" selected>3张图片</option>
+                    <option value="5">5张图片</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="imageStyle" class="control-label">图片风格</label>
+                <select id="imageStyle" class="select-input">
+                    <option value="realistic">写实风格</option>
+                    <option value="illustration" selected>插画风格</option>
+                    <option value="minimalist">极简风格</option>
+                    <option value="artistic">艺术风格</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="aspectRatio" class="control-label">画面比例</label>
+                <select id="aspectRatio" class="select-input">
+                    <option value="9:16" selected>9:16 (竖版)</option>
+                    <option value="1:1">1:1 (方形)</option>
+                    <option value="16:9">16:9 (横版)</option>
+                    <option value="4:5">4:5 (小红书)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="quality" class="control-label">图片质量</label>
+                <select id="quality" class="select-input">
+                    <option value="standard">标准质量</option>
+                    <option value="high" selected>高质量</option>
+                    <option value="ultra">超高质量</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Preview Controls -->
+        <div style="text-align: center; margin: 20px 0;">
+            <button id="generatePreviewBtn" class="btn secondary">
+                👁️ 生成预览
+            </button>
+            <button id="generateAllBtn" class="btn">
+                ✨ 批量生成
+            </button>
+        </div>
+
+        <!-- Generated Images -->
+        <div class="preview-container" id="generatedImagesPreview" style="display: none;">
+            <h3>生成的图片</h3>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="imageCountStat">0</div>
+                    <div class="stat-label">张图片</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="generationTimeStat">0s</div>
+                    <div class="stat-label">生成时间</div>
+                </div>
+            </div>
+            <div class="images-grid" id="imagesGrid">
+                <!-- Generated images will appear here -->
+            </div>
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}<br>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function generateMockImage(index, settings) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // 根据比例设置尺寸
+                    let width = 300, height = 400;
+                    if (settings.aspectRatio === '1:1') {
+                        width = height = 300;
+                    } else if (settings.aspectRatio === '16:9') {
+                        width = 400; height = 225;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // 生成渐变背景
+                    const gradients = [
+                        ['#667eea', '#764ba2'],
+                        ['#4facfe', '#00f2fe'],
+                        ['#43e97b', '#38f9d7'],
+                        ['#fa709a', '#fee140'],
+                        ['#a8edea', '#fed6e3']
+                    ];
+                    
+                    const gradient = gradients[index % gradients.length];
+                    const grd = ctx.createLinearGradient(0, 0, width, height);
+                    grd.addColorStop(0, gradient[0]);
+                    grd.addColorStop(1, gradient[1]);
+                    
+                    ctx.fillStyle = grd;
+                    ctx.fillRect(0, 0, width, height);
+                    
+                    // 添加文字
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`图片 ${index + 1}`, width/2, height/2);
+                    
+                    ctx.font = '16px Arial';
+                    ctx.fillText(`${settings.imageStyle} 风格`, width/2, height/2 + 30);
+                    ctx.fillText(`${width}x${height}`, width/2, height/2 + 50);
+                    
+                    canvas.toBlob((blob) => {
+                        resolve({
+                            id: `mock_${index}_${Date.now()}`,
+                            url: canvas.toDataURL(),
+                            blob: blob,
+                            title: `${settings.imageStyle}风格图片 ${index + 1}`,
+                            width: width,
+                            height: height,
+                            size: blob.size
+                        });
+                    });
+                }, 500 + index * 200); // 模拟生成延迟
+            });
+        }
+
+        async function generateAllImages() {
+            const generateAllBtn = document.getElementById('generateAllBtn');
+            const generatedImagesPreview = document.getElementById('generatedImagesPreview');
+            const imagesGrid = document.getElementById('imagesGrid');
+            
+            // 获取设置
+            const settings = {
+                imageCount: parseInt(document.getElementById('imageCount').value),
+                imageStyle: document.getElementById('imageStyle').value,
+                aspectRatio: document.getElementById('aspectRatio').value,
+                quality: document.getElementById('quality').value
+            };
+            
+            log(`开始批量生成 ${settings.imageCount} 张图片...`);
+            log(`设置: ${JSON.stringify(settings)}`);
+            
+            // 更新按钮状态
+            generateAllBtn.disabled = true;
+            generateAllBtn.innerHTML = '⏳ 生成中...';
+            
+            // 清空之前的结果
+            imagesGrid.innerHTML = '';
+            
+            const startTime = Date.now();
+            
+            try {
+                // 生成图片
+                const images = [];
+                for (let i = 0; i < settings.imageCount; i++) {
+                    log(`正在生成第 ${i + 1} 张图片...`);
+                    const image = await generateMockImage(i, settings);
+                    images.push(image);
+                    
+                    // 立即显示生成的图片
+                    const imageItem = createImageItem(image);
+                    imagesGrid.appendChild(imageItem);
+                }
+                
+                const generationTime = Math.round((Date.now() - startTime) / 1000);
+                
+                // 更新统计信息
+                document.getElementById('imageCountStat').textContent = images.length;
+                document.getElementById('generationTimeStat').textContent = generationTime;
+                
+                // 显示结果区域
+                generatedImagesPreview.style.display = 'block';
+                
+                log(`成功生成 ${images.length} 张图片，耗时 ${generationTime} 秒`);
+                
+            } catch (error) {
+                log(`生成失败: ${error.message}`);
+            } finally {
+                // 恢复按钮状态
+                generateAllBtn.disabled = false;
+                generateAllBtn.innerHTML = '✨ 批量生成';
+            }
+        }
+
+        function createImageItem(image) {
+            const item = document.createElement('div');
+            item.className = 'image-item';
+            
+            item.innerHTML = `
+                <div class="image-preview">
+                    <img src="${image.url}" alt="${image.title}" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div class="image-info">
+                    <div class="image-title">${image.title}</div>
+                    <div class="image-meta">${image.width}x${image.height}</div>
+                </div>
+            `;
+            
+            return item;
+        }
+
+        // 绑定事件
+        document.getElementById('generateAllBtn').addEventListener('click', generateAllImages);
+        document.getElementById('generatePreviewBtn').addEventListener('click', () => {
+            log('生成预览功能（单张图片预览）');
+        });
+
+        // 初始化
+        log('测试页面已加载');
+        log('请选择生成数量，然后点击"批量生成"按钮进行测试');
+    </script>
+</body>
+</html>

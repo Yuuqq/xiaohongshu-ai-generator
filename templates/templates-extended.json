@@ -1,0 +1,158 @@
+{
+  "templates": [
+    {
+      "id": "xiaohongshu-lifestyle",
+      "name": "🌸 生活方式",
+      "description": "适合生活分享、日常记录、心情感悟",
+      "category": "lifestyle",
+      "preview_gradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      "style": {
+        "layout": "vertical",
+        "colorScheme": "warm",
+        "typography": "modern",
+        "elements": ["title", "content", "tags", "avatar"]
+      },
+      "prompt_template": "创建一个小红书风格的生活方式图片卡片，内容：{content}。设计要求：温暖色调（粉色、橙色、米色），现代简约排版，包含精美标题、正文内容和相关标签，整体风格温馨治愈，适合小红书平台分享。图片尺寸为竖版，背景使用渐变或纯色，字体清晰易读。"
+    },
+    {
+      "id": "xiaohongshu-knowledge",
+      "name": "📚 知识干货",
+      "description": "适合知识分享、教程攻略、学习笔记",
+      "category": "education",
+      "preview_gradient": "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+      "style": {
+        "layout": "card",
+        "colorScheme": "professional",
+        "typography": "clean",
+        "elements": ["title", "content", "steps", "summary"]
+      },
+      "prompt_template": "创建一个小红书知识干货卡片，内容：{content}。设计要求：专业简洁的蓝色系配色，清晰的信息层次，包含醒目标题、要点列表、重点标注，使用现代无衬线字体，背景简洁，突出知识内容的专业性和实用性。"
+    },
+    {
+      "id": "xiaohongshu-fashion",
+      "name": "👗 时尚穿搭",
+      "description": "适合穿搭分享、美妆教程、时尚资讯",
+      "category": "fashion",
+      "preview_gradient": "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+      "style": {
+        "layout": "magazine",
+        "colorScheme": "trendy",
+        "typography": "stylish",
+        "elements": ["title", "content", "tags", "mood"]
+      },
+      "prompt_template": "创建一个小红书时尚穿搭图片，内容：{content}。设计要求：时尚杂志风格，使用粉色、金色等潮流色彩，现代时尚字体，包含吸引人的标题、穿搭描述和风格标签，整体设计要有时尚感和视觉冲击力。"
+    },
+    {
+      "id": "xiaohongshu-food",
+      "name": "🍰 美食分享",
+      "description": "适合美食推荐、菜谱分享、餐厅探店",
+      "category": "food",
+      "preview_gradient": "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)",
+      "style": {
+        "layout": "food-card",
+        "colorScheme": "appetizing",
+        "typography": "friendly",
+        "elements": ["title", "content", "rating", "tags"]
+      },
+      "prompt_template": "创建一个小红书美食分享卡片，内容：{content}。设计要求：温暖的橙红色系，让人有食欲的配色，包含美食标题、详细描述、推荐指数，使用友好的字体，整体设计要让人感到温馨和有食欲。"
+    },
+    {
+      "id": "xiaohongshu-travel",
+      "name": "✈️ 旅行记录",
+      "description": "适合旅行分享、景点推荐、攻略游记",
+      "category": "travel",
+      "preview_gradient": "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
+      "style": {
+        "layout": "travel-card",
+        "colorScheme": "adventure",
+        "typography": "wanderlust",
+        "elements": ["title", "location", "content", "tips"]
+      },
+      "prompt_template": "创建一个小红书旅行记录卡片，内容：{content}。设计要求：清新的蓝绿色系，给人自由和冒险的感觉，包含地点标题、旅行描述、实用贴士，使用轻松的字体，整体设计要体现旅行的美好和自由。"
+    },
+    {
+      "id": "xiaohongshu-product",
+      "name": "🛍️ 好物推荐",
+      "description": "适合产品测评、购物分享、种草推荐",
+      "category": "shopping",
+      "preview_gradient": "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
+      "style": {
+        "layout": "product-card",
+        "colorScheme": "shopping",
+        "typography": "persuasive",
+        "elements": ["title", "product", "review", "price"]
+      },
+      "prompt_template": "创建一个小红书好物推荐卡片，内容：{content}。设计要求：活力的橙黄色系，吸引购买欲的配色，包含产品标题、使用体验、推荐理由，使用有说服力的字体，整体设计要突出产品的吸引力和实用性。"
+    },
+    {
+      "id": "xiaohongshu-fitness",
+      "name": "💪 健身运动",
+      "description": "适合健身分享、运动记录、健康生活",
+      "category": "fitness",
+      "preview_gradient": "linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)",
+      "style": {
+        "layout": "fitness-card",
+        "colorScheme": "energetic",
+        "typography": "strong",
+        "elements": ["title", "workout", "progress", "motivation"]
+      },
+      "prompt_template": "创建一个小红书健身运动卡片，内容：{content}。设计要求：充满活力的绿蓝色系，给人健康和力量的感觉，包含运动标题、锻炼内容、进步记录，使用有力量感的字体，整体设计要体现健康和积极向上的精神。"
+    },
+    {
+      "id": "xiaohongshu-minimalist",
+      "name": "🎨 极简风格",
+      "description": "适合简约内容、文艺分享、情感表达",
+      "category": "minimalist",
+      "preview_gradient": "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+      "style": {
+        "layout": "minimal-card",
+        "colorScheme": "minimal",
+        "typography": "elegant",
+        "elements": ["title", "content", "quote"]
+      },
+      "prompt_template": "创建一个小红书极简风格卡片，内容：{content}。设计要求：简约的黑白灰配色或单一色调，大量留白，精简的文字排版，使用优雅的字体，整体设计要体现简约美学和文艺气质。"
+    },
+    {
+      "id": "xiaohongshu-tech-premium",
+      "name": "🚀 技术精美卡片",
+      "description": "专为技术内容设计的高颜值卡片，易懂专业",
+      "category": "technology",
+      "preview_gradient": "linear-gradient(135deg, #FFD4E5 0%, #AAE0FF 100%)",
+      "style": {
+        "layout": "tech-premium",
+        "colorScheme": "professional-soft",
+        "typography": "modern-clean",
+        "elements": ["title", "data-points", "key-insights", "tech-explanation"]
+      },
+      "prompt_template": "请你制作适合小红书平台发布的精美技术卡片（SVG），竖屏，适合手机阅读。要求：符合小红书平台上流行的"高颜值、有设计感、信息清晰"的风格，柔和色调，既时尚又保持技术内容的专业性。整体结构舒展，同时保持视觉美感和信息清晰度。视觉舒适，设计精美，包含面向技术新手的易懂解读，突出重要和关键信息。内容：{content}"
+    },
+    {
+      "id": "xiaohongshu-data-showcase",
+      "name": "📊 数据展示卡片",
+      "description": "突出数据和指标的专业展示卡片",
+      "category": "technology",
+      "preview_gradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      "style": {
+        "layout": "data-focused",
+        "colorScheme": "data-professional",
+        "typography": "data-clean",
+        "elements": ["title", "key-metrics", "data-visualization", "insights"]
+      },
+      "prompt_template": "创建一个小红书数据展示卡片，内容：{content}。设计要求：专业的数据可视化风格，使用蓝紫色渐变背景，突出关键数字和指标，包含清晰的数据卡片设计，现代化的图表元素，确保数据的可读性和视觉冲击力。"
+    },
+    {
+      "id": "xiaohongshu-tutorial-card",
+      "name": "📖 教程攻略卡片",
+      "description": "适合教程、攻略、学习内容的清晰卡片",
+      "category": "education",
+      "preview_gradient": "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
+      "style": {
+        "layout": "tutorial-steps",
+        "colorScheme": "educational-soft",
+        "typography": "tutorial-friendly",
+        "elements": ["title", "step-by-step", "tips", "summary"]
+      },
+      "prompt_template": "创建一个小红书教程攻略卡片，内容：{content}。设计要求：清新的教育风格，使用柔和的青色到粉色渐变，包含步骤化的内容展示，友好的图标和提示，确保学习内容的易读性和吸引力，适合知识分享和教程展示。"
+    }
+  ]
+}

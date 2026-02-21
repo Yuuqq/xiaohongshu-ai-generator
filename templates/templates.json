@@ -1,0 +1,43 @@
+{
+  "templates": [
+    {
+      "id": "xiaohongshu-lifestyle",
+      "name": "小红书生活方式",
+      "description": "适合生活分享、美食、旅行等内容",
+      "category": "lifestyle",
+      "style": {
+        "layout": "vertical",
+        "colorScheme": "warm",
+        "typography": "modern",
+        "elements": ["title", "content", "tags", "avatar"]
+      },
+      "prompt_template": "创建一个小红书风格的生活方式图片，内容：{content}，风格：温暖色调，现代排版，包含标题和标签"
+    },
+    {
+      "id": "xiaohongshu-knowledge",
+      "name": "小红书知识卡片",
+      "description": "适合知识分享、教程、干货内容",
+      "category": "education",
+      "style": {
+        "layout": "card",
+        "colorScheme": "professional",
+        "typography": "clean",
+        "elements": ["title", "content", "steps", "summary"]
+      },
+      "prompt_template": "创建一个小红书知识卡片，内容：{content}，风格：专业简洁，清晰排版，突出重点信息"
+    },
+    {
+      "id": "xiaohongshu-fashion",
+      "name": "小红书时尚穿搭",
+      "description": "适合穿搭分享、美妆、时尚内容",
+      "category": "fashion",
+      "style": {
+        "layout": "magazine",
+        "colorScheme": "trendy",
+        "typography": "stylish",
+        "elements": ["title", "content", "tags", "mood"]
+      },
+      "prompt_template": "创建一个小红书时尚穿搭图片，内容：{content}，风格：时尚杂志风，潮流色彩，突出视觉效果"
+    }
+  ]
+}

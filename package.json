@@ -1,0 +1,36 @@
+{
+  "name": "xiaohongshu-ai-generator",
+  "version": "1.0.0",
+  "description": "AI-powered image generator for Xiaohongshu content creation using Google Gemini API",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server . -p 8080 -o",
+    "dev": "npx live-server --port=8080 --open=/",
+    "build": "echo 'Static site - no build needed'",
+    "test": "echo 'Tests will be added'",
+    "deploy": "gh-pages -d ."
+  },
+  "keywords": [
+    "xiaohongshu",
+    "ai",
+    "image-generator",
+    "gemini-api",
+    "content-creation",
+    "social-media"
+  ],
+  "author": "AI Assistant",
+  "license": "MIT",
+  "devDependencies": {
+    "gh-pages": "^6.1.1",
+    "http-server": "^14.1.1",
+    "live-server": "^1.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/username/xiaohongshu-ai-generator.git"
+  },
+  "homepage": "https://username.github.io/xiaohongshu-ai-generator/",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

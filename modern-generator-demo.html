@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 AI技术卡片生成器 - 专业技术内容可视化</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=LXGW+WenKai:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Modern CSS -->
+    <link rel="stylesheet" href="assets/css/modern-design.css">
+    
+    <style>
+        /* Page-specific styles */
+        .hero-section {
+            background: linear-gradient(135deg, var(--md-sys-color-primary-container) 0%, var(--md-sys-color-tertiary-container) 100%);
+            padding: var(--md-sys-spacing-xxxl) 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .demo-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--md-sys-spacing-xxl);
+            align-items: start;
+        }
+
+        .input-panel {
+            background: var(--md-sys-color-surface);
+            border-radius: var(--md-sys-shape-corner-extra-large);
+            padding: var(--md-sys-spacing-xxl);
+            box-shadow: var(--md-sys-elevation-level2);
+            position: sticky;
+            top: var(--md-sys-spacing-xl);
+        }
+
+        .output-panel {
+            background: var(--md-sys-color-surface-variant);
+            border-radius: var(--md-sys-shape-corner-extra-large);
+            padding: var(--md-sys-spacing-xxl);
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .content-textarea {
+            width: 100%;
+            min-height: 200px;
+            resize: vertical;
+            border: 2px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-medium);
+            padding: var(--md-sys-spacing-lg);
+            font-family: var(--md-sys-typescale-body-large-font);
+            font-size: var(--md-sys-typescale-body-large-size);
+            line-height: var(--md-sys-typescale-body-large-line-height);
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            transition: all var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard);
+        }
+
+        .content-textarea:focus {
+            outline: none;
+            border-color: var(--md-sys-color-primary);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 20%, transparent);
+        }
+
+        .template-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: var(--md-sys-spacing-md);
+            margin: var(--md-sys-spacing-lg) 0;
+        }
+
+        .template-option {
+            background: var(--md-sys-color-surface-variant);
+            border: 2px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-medium);
+            padding: var(--md-sys-spacing-lg);
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .template-option:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--md-sys-elevation-level3);
+        }
+
+        .template-option.selected {
+            border-color: var(--md-sys-color-primary);
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+        }
+
+        .template-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+            transform: translateX(-100%);
+            transition: transform var(--md-sys-motion-duration-medium4) var(--md-sys-motion-easing-emphasized);
+        }
+
+        .template-option:hover::before {
+            transform: translateX(100%);
+        }
+
+        .generate-button {
+            width: 100%;
+            background: linear-gradient(135deg, var(--md-sys-color-primary), var(--md-sys-color-tertiary));
+            color: var(--md-sys-color-on-primary);
+            border: none;
+            border-radius: var(--md-sys-shape-corner-large);
+            padding: var(--md-sys-spacing-lg) var(--md-sys-spacing-xl);
+            font-family: var(--md-sys-typescale-title-large-font);
+            font-size: var(--md-sys-typescale-title-large-size);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard);
+            position: relative;
+            overflow: hidden;
+            margin-top: var(--md-sys-spacing-xl);
+        }
+
+        .generate-button:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--md-sys-elevation-level4);
+        }
+
+        .generate-button:active {
+            transform: translateY(0);
+        }
+
+        .generate-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid currentColor;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-right: var(--md-sys-spacing-sm);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .generated-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--md-sys-shape-corner-large);
+            box-shadow: var(--md-sys-elevation-level3);
+            transition: all var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard);
+        }
+
+        .generated-image:hover {
+            transform: scale(1.02);
+            box-shadow: var(--md-sys-elevation-level5);
+        }
+
+        .image-actions {
+            display: flex;
+            gap: var(--md-sys-spacing-md);
+            margin-top: var(--md-sys-spacing-lg);
+        }
+
+        .action-button {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            border: none;
+            border-radius: var(--md-sys-shape-corner-medium);
+            padding: var(--md-sys-spacing-md) var(--md-sys-spacing-lg);
+            cursor: pointer;
+            transition: all var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+            display: flex;
+            align-items: center;
+            gap: var(--md-sys-spacing-sm);
+        }
+
+        .action-button:hover {
+            background: var(--md-sys-color-secondary);
+            color: var(--md-sys-color-on-secondary);
+        }
+
+        .placeholder-content {
+            text-align: center;
+            color: var(--md-sys-color-on-surface-variant);
+            opacity: 0.7;
+        }
+
+        .placeholder-icon {
+            font-size: 4rem;
+            margin-bottom: var(--md-sys-spacing-lg);
+            opacity: 0.5;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--md-sys-spacing-xl);
+            margin: var(--md-sys-spacing-xxxl) 0;
+        }
+
+        .feature-card {
+            background: var(--md-sys-color-surface);
+            border-radius: var(--md-sys-shape-corner-large);
+            padding: var(--md-sys-spacing-xl);
+            text-align: center;
+            box-shadow: var(--md-sys-elevation-level1);
+            transition: all var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--md-sys-elevation-level3);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: var(--md-sys-spacing-lg);
+            background: linear-gradient(135deg, var(--md-sys-color-primary), var(--md-sys-color-tertiary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        @media (max-width: 768px) {
+            .demo-container {
+                grid-template-columns: 1fr;
+                gap: var(--md-sys-spacing-lg);
+            }
+
+            .input-panel {
+                position: static;
+            }
+
+            .hero-section {
+                padding: var(--md-sys-spacing-xl) 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-content modern-container">
+            <h1 class="modern-text-display-large animate-fade-in-up">
+                🚀 AI技术卡片生成器
+            </h1>
+            <p class="modern-text-body-large animate-fade-in-up" style="--stagger-delay: 1; margin-top: var(--md-sys-spacing-lg); opacity: 0.8;">
+                专业技术内容可视化，打造精美的小红书技术分享卡片
+            </p>
+            <p class="modern-text-body-large animate-fade-in-up" style="--stagger-delay: 2; margin-top: var(--md-sys-spacing-md); opacity: 0.7;">
+                Material Design 3.0 + SVG渲染 + 智能排版 + 技术内容优化
+            </p>
+        </div>
+    </section>
+
+    <!-- Main Demo -->
+    <main class="modern-container">
+        <div class="demo-container">
+            <!-- Input Panel -->
+            <div class="input-panel animate-slide-in-right">
+                <h2 class="modern-text-headline-large" style="margin-bottom: var(--md-sys-spacing-xl);">
+                    🚀 创建技术内容
+                </h2>
+
+                <div style="margin-bottom: var(--md-sys-spacing-lg);">
+                    <label for="contentInput" class="modern-text-body-large" style="display: block; margin-bottom: var(--md-sys-spacing-sm); font-weight: 500;">
+                        技术内容文本
+                    </label>
+                    <textarea
+                        id="contentInput"
+                        class="content-textarea"
+                        placeholder="输入技术内容...&#10;&#10;支持：&#10;• 技术解释&#10;• 核心特性&#10;• 性能数据&#10;• 应用场景"
+                    >🚀 Introducing NSA: A Hardware-Aligned and Natively Trainable Sparse Attention mechanism for ultra-fast long-context training & inference!
+
+Core components of NSA:
+• Dynamic hierarchical sparse strategy
+• Coarse-grained token compression
+• Fine-grained token selection
+
+💡 With optimized design for modern hardware, NSA speeds up inference while reducing pre-training costs—without compromising performance. It matches or outperforms Full Attention models on general benchmarks, long-context tasks, and instruction-based reasoning.
+
+📖 For more details, check out our paper here: https://arxiv.org/abs/2502.11089</textarea>
+                </div>
+
+                <div style="margin-bottom: var(--md-sys-spacing-lg);">
+                    <label class="modern-text-body-large" style="display: block; margin-bottom: var(--md-sys-spacing-sm); font-weight: 500;">
+                        选择卡片风格
+                    </label>
+                    <div class="template-selector">
+                        <div class="template-option selected" data-template="material-tech-card">
+                            <div style="font-size: 1.5rem; margin-bottom: var(--md-sys-spacing-xs);">🔬</div>
+                            <div style="font-size: 0.875rem; font-weight: 500;">技术卡片</div>
+                        </div>
+                        <div class="template-option" data-template="material-tech">
+                            <div style="font-size: 1.5rem; margin-bottom: var(--md-sys-spacing-xs);">🚀</div>
+                            <div style="font-size: 0.875rem; font-weight: 500;">科技风</div>
+                        </div>
+                        <div class="template-option" data-template="material-lifestyle">
+                            <div style="font-size: 1.5rem; margin-bottom: var(--md-sys-spacing-xs);">🌟</div>
+                            <div style="font-size: 0.875rem; font-weight: 500;">生活风</div>
+                        </div>
+                        <div class="template-option" data-template="material-nature">
+                            <div style="font-size: 1.5rem; margin-bottom: var(--md-sys-spacing-xs);">🌿</div>
+                            <div style="font-size: 0.875rem; font-weight: 500;">自然风</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="generateBtn" class="generate-button">
+                    <span class="material-icons" style="margin-right: var(--md-sys-spacing-sm);">auto_awesome</span>
+                    生成技术卡片
+                </button>
+            </div>
+
+            <!-- Output Panel -->
+            <div class="output-panel animate-scale-in">
+                <div id="outputContent" class="placeholder-content">
+                    <div class="placeholder-icon">🔬</div>
+                    <h3 class="modern-text-headline-medium">准备生成技术卡片</h3>
+                    <p class="modern-text-body-large" style="margin-top: var(--md-sys-spacing-md);">
+                        专业的技术内容可视化，打造适合小红书的精美技术分享卡片
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <section style="margin-top: var(--md-sys-spacing-xxxl);">
+            <h2 class="modern-text-display-medium" style="text-align: center; margin-bottom: var(--md-sys-spacing-xxl);">
+                � 技术特性
+            </h2>
+            <div class="feature-grid">
+                <div class="feature-card animate-fade-in-up" style="--stagger-delay: 1;">
+                    <div class="feature-icon">🎨</div>
+                    <h3 class="modern-text-headline-medium">Material Design 3.0</h3>
+                    <p class="modern-text-body-large" style="margin-top: var(--md-sys-spacing-md); opacity: 0.8;">
+                        采用 Google 最新设计系统，专为技术内容优化的配色和排版
+                    </p>
+                </div>
+                <div class="feature-card animate-fade-in-up" style="--stagger-delay: 2;">
+                    <div class="feature-icon">🔬</div>
+                    <h3 class="modern-text-headline-medium">技术内容优化</h3>
+                    <p class="modern-text-body-large" style="margin-top: var(--md-sys-spacing-md); opacity: 0.8;">
+                        智能识别技术术语、性能数据和核心特性，自动优化展示效果
+                    </p>
+                </div>
+                <div class="feature-card animate-fade-in-up" style="--stagger-delay: 3;">
+                    <div class="feature-icon">📊</div>
+                    <h3 class="modern-text-headline-medium">数据可视化</h3>
+                    <p class="modern-text-body-large" style="margin-top: var(--md-sys-spacing-md); opacity: 0.8;">
+                        性能指标、技术参数的专业化展示，突出关键数据
+                    </p>
+                </div>
+                <div class="feature-card animate-fade-in-up" style="--stagger-delay: 4;">
+                    <div class="feature-icon">📱</div>
+                    <h3 class="modern-text-headline-medium">小红书适配</h3>
+                    <p class="modern-text-body-large" style="margin-top: var(--md-sys-spacing-md); opacity: 0.8;">
+                        竖屏设计，完美适配小红书平台的展示需求
+                    </p>
+                </div>
+                <div class="feature-card animate-fade-in-up" style="--stagger-delay: 5;">
+                    <div class="feature-icon">🎯</div>
+                    <h3 class="modern-text-headline-medium">专业解读</h3>
+                    <p class="modern-text-body-large" style="margin-top: var(--md-sys-spacing-md); opacity: 0.8;">
+                        将复杂技术内容转化为易懂的可视化表达
+                    </p>
+                </div>
+                <div class="feature-card animate-fade-in-up" style="--stagger-delay: 6;">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="modern-text-headline-medium">高质量渲染</h3>
+                    <p class="modern-text-body-large" style="margin-top: var(--md-sys-spacing-md); opacity: 0.8;">
+                        SVG矢量图形，支持高分辨率输出和无损缩放
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="assets/js/modern-image-generator.js"></script>
+    
+    <script>
+        // 页面加载动画
+        document.addEventListener('DOMContentLoaded', () => {
+            // 应用交错动画
+            const staggerElements = document.querySelectorAll('.animate-stagger > *, [style*="--stagger-delay"]');
+            staggerElements.forEach((el, index) => {
+                const delay = el.style.getPropertyValue('--stagger-delay') || index;
+                el.style.animationDelay = `${delay * 100}ms`;
+            });
+        });
+
+        // 全局变量
+        let selectedTemplate = 'material-tech-card';
+        let isGenerating = false;
+
+        // 模板选择
+        document.querySelectorAll('.template-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.template-option').forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+                selectedTemplate = option.dataset.template;
+                
+                // 添加选择动画
+                if (typeof gsap !== 'undefined') {
+                    gsap.fromTo(option, 
+                        { scale: 0.95 },
+                        { scale: 1, duration: 0.2, ease: "back.out(1.7)" }
+                    );
+                }
+            });
+        });
+
+        // 生成按钮
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            if (isGenerating) return;
+            
+            const content = document.getElementById('contentInput').value.trim();
+            if (!content) {
+                alert('请输入内容');
+                return;
+            }
+
+            await generateModernImage(content, selectedTemplate);
+        });
+
+        // 生成图片函数
+        async function generateModernImage(content, templateId) {
+            const generateBtn = document.getElementById('generateBtn');
+            const outputContent = document.getElementById('outputContent');
+            
+            try {
+                isGenerating = true;
+                
+                // 更新按钮状态
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = '<span class="loading-spinner"></span>生成中...';
+                
+                // 显示加载状态
+                outputContent.innerHTML = `
+                    <div class="placeholder-content">
+                        <div class="loading-spinner" style="width: 40px; height: 40px; margin-bottom: var(--md-sys-spacing-lg);"></div>
+                        <h3 class="modern-text-headline-medium">正在生成图片...</h3>
+                        <p class="modern-text-body-large" style="margin-top: var(--md-sys-spacing-md);">
+                            使用 ${templateId} 模板处理您的内容
+                        </p>
+                    </div>
+                `;
+
+                // 等待生成器初始化
+                if (!window.modernImageGenerator) {
+                    throw new Error('Modern Image Generator not initialized');
+                }
+
+                // 生成图片
+                const imageData = await window.modernImageGenerator.generateModernImage(content, templateId, {
+                    quality: 'high',
+                    format: 'png'
+                });
+
+                // 显示结果
+                displayGeneratedImage(imageData);
+                
+            } catch (error) {
+                console.error('Generation failed:', error);
+                outputContent.innerHTML = `
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon" style="color: var(--md-sys-color-error);">❌</div>
+                        <h3 class="modern-text-headline-medium">生成失败</h3>
+                        <p class="modern-text-body-large" style="margin-top: var(--md-sys-spacing-md);">
+                            ${error.message}
+                        </p>
+                        <button class="modern-button" onclick="location.reload()" style="margin-top: var(--md-sys-spacing-lg);">
+                            重新尝试
+                        </button>
+                    </div>
+                `;
+            } finally {
+                isGenerating = false;
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<span class="material-icons" style="margin-right: var(--md-sys-spacing-sm);">auto_awesome</span>生成技术卡片';
+            }
+        }
+
+        // 显示生成的图片
+        function displayGeneratedImage(imageData) {
+            const outputContent = document.getElementById('outputContent');
+            
+            outputContent.innerHTML = `
+                <img src="${imageData.url}" alt="Generated Image" class="generated-image">
+                <div class="image-actions">
+                    <button class="action-button" onclick="downloadImage('${imageData.url}')">
+                        <span class="material-icons">download</span>
+                        下载图片
+                    </button>
+                    <button class="action-button" onclick="shareImage('${imageData.url}')">
+                        <span class="material-icons">share</span>
+                        分享图片
+                    </button>
+                    <button class="action-button" onclick="regenerateImage()">
+                        <span class="material-icons">refresh</span>
+                        重新生成
+                    </button>
+                </div>
+                <div style="margin-top: var(--md-sys-spacing-lg); text-align: center; opacity: 0.7;">
+                    <small class="modern-text-body-medium">
+                        尺寸: ${imageData.width}x${imageData.height} | 格式: ${imageData.format.toUpperCase()}
+                    </small>
+                </div>
+            `;
+
+            // 添加显示动画
+            if (typeof gsap !== 'undefined') {
+                gsap.fromTo(outputContent.querySelector('.generated-image'),
+                    { opacity: 0, scale: 0.9 },
+                    { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.7)" }
+                );
+            }
+        }
+
+        // 下载图片
+        function downloadImage(dataUrl) {
+            const link = document.createElement('a');
+            link.download = `modern-ai-generated-${Date.now()}.png`;
+            link.href = dataUrl;
+            link.click();
+        }
+
+        // 分享图片
+        function shareImage(dataUrl) {
+            if (navigator.share) {
+                // 使用 Web Share API
+                fetch(dataUrl)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        const file = new File([blob], 'ai-generated.png', { type: 'image/png' });
+                        navigator.share({
+                            title: 'AI生成的图片',
+                            text: '看看我用AI生成的图片！',
+                            files: [file]
+                        });
+                    });
+            } else {
+                // 复制到剪贴板
+                navigator.clipboard.writeText(window.location.href).then(() => {
+                    alert('链接已复制到剪贴板');
+                });
+            }
+        }
+
+        // 重新生成
+        function regenerateImage() {
+            const content = document.getElementById('contentInput').value.trim();
+            if (content) {
+                generateModernImage(content, selectedTemplate);
+            }
+        }
+
+        // 初始化提示
+        console.log('🔬 AI技术卡片生成器 Ready!');
+        console.log('📱 专为小红书技术内容优化');
+        console.log('🎭 Material Design 3.0 + 智能排版');
+        console.log('⚡ SVG高质量渲染 + 技术内容识别');
+    </script>
+</body>
+</html>

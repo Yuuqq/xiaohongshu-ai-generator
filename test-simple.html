@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简化测试 - 小红书AI图片生成器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .step {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #6750A4;
+        }
+        .tone-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .tone-card {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .tone-card:hover {
+            border-color: #6750A4;
+        }
+        .tone-card.selected {
+            border-color: #6750A4;
+            background-color: #f3f0ff;
+        }
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .template-card {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .template-card:hover {
+            border-color: #6750A4;
+        }
+        .template-card.selected {
+            border-color: #6750A4;
+            background-color: #f3f0ff;
+        }
+        .template-preview {
+            width: 100%;
+            height: 80px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        button {
+            background: #6750A4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background: #5a4093;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 小红书AI图片生成器 - 简化测试</h1>
+        
+        <div class="step">
+            <h3>步骤1: 内容输入</h3>
+            <textarea id="contentInput" placeholder="输入您要生成图片的内容...">分享一个超好用的护肤小技巧，让你的皮肤水嫩透亮！</textarea>
+            <div id="step1Status" class="status"></div>
+            <button id="nextStep1" onclick="goToStep2()">下一步</button>
+        </div>
+
+        <div class="step" id="step2" style="display: none;">
+            <h3>步骤2: 选择口吻和模板</h3>
+            
+            <h4>选择写作口吻:</h4>
+            <div class="tone-grid">
+                <div class="tone-card" data-tone="friendly" onclick="selectTone('friendly')">
+                    <div>😊</div>
+                    <div>亲切友好</div>
+                </div>
+                <div class="tone-card" data-tone="professional" onclick="selectTone('professional')">
+                    <div>💼</div>
+                    <div>专业权威</div>
+                </div>
+                <div class="tone-card" data-tone="playful" onclick="selectTone('playful')">
+                    <div>🎉</div>
+                    <div>活泼可爱</div>
+                </div>
+            </div>
+
+            <h4>选择模板:</h4>
+            <div class="template-grid" id="templateGrid">
+                <!-- 模板将在这里动态生成 -->
+            </div>
+
+            <div id="step2Status" class="status"></div>
+            <button onclick="goToStep1()">上一步</button>
+            <button id="nextStep2" onclick="goToStep3()" disabled>下一步</button>
+        </div>
+
+        <div class="step" id="step3" style="display: none;">
+            <h3>步骤3: 完成</h3>
+            <div id="summary"></div>
+            <button onclick="goToStep2()">上一步</button>
+            <button onclick="restart()">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        // 简化的状态管理
+        const state = {
+            content: '',
+            tone: '',
+            template: null,
+            currentStep: 1
+        };
+
+        // 简化的模板数据
+        const templates = [
+            {
+                id: 'lifestyle',
+                name: '🌸 生活方式',
+                description: '适合生活分享、日常记录',
+                gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+            },
+            {
+                id: 'knowledge',
+                name: '📚 知识干货',
+                description: '适合知识分享、教程攻略',
+                gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+            },
+            {
+                id: 'fashion',
+                name: '👗 时尚穿搭',
+                description: '适合穿搭分享、美妆教程',
+                gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+            }
+        ];
+
+        // 初始化
+        function init() {
+            renderTemplates();
+            updateStep1Status();
+        }
+
+        // 渲染模板
+        function renderTemplates() {
+            const templateGrid = document.getElementById('templateGrid');
+            templateGrid.innerHTML = '';
+            
+            templates.forEach(template => {
+                const card = document.createElement('div');
+                card.className = 'template-card';
+                card.dataset.templateId = template.id;
+                card.onclick = () => selectTemplate(template.id);
+                
+                card.innerHTML = `
+                    <div class="template-name">${template.name}</div>
+                    <div class="template-description">${template.description}</div>
+                    <div class="template-preview" style="background: ${template.gradient}">
+                        预览
+                    </div>
+                `;
+                
+                templateGrid.appendChild(card);
+            });
+        }
+
+        // 选择口吻
+        function selectTone(tone) {
+            // 移除之前的选中状态
+            document.querySelectorAll('.tone-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // 添加新的选中状态
+            document.querySelector(`[data-tone="${tone}"]`).classList.add('selected');
+            
+            state.tone = tone;
+            updateStep2Status();
+            console.log('选择口吻:', tone);
+        }
+
+        // 选择模板
+        function selectTemplate(templateId) {
+            // 移除之前的选中状态
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // 添加新的选中状态
+            document.querySelector(`[data-template-id="${templateId}"]`).classList.add('selected');
+            
+            state.template = templates.find(t => t.id === templateId);
+            updateStep2Status();
+            console.log('选择模板:', state.template.name);
+        }
+
+        // 更新步骤1状态
+        function updateStep1Status() {
+            const content = document.getElementById('contentInput').value;
+            const status = document.getElementById('step1Status');
+            const nextBtn = document.getElementById('nextStep1');
+            
+            state.content = content;
+            
+            if (content.trim().length >= 5) {
+                status.className = 'status success';
+                status.textContent = '✓ 内容格式正确';
+                nextBtn.disabled = false;
+            } else {
+                status.className = 'status error';
+                status.textContent = '✗ 请输入至少5个字符';
+                nextBtn.disabled = true;
+            }
+        }
+
+        // 更新步骤2状态
+        function updateStep2Status() {
+            const status = document.getElementById('step2Status');
+            const nextBtn = document.getElementById('nextStep2');
+            
+            const hasContent = state.content.trim().length >= 5;
+            const hasTone = state.tone !== '';
+            const hasTemplate = state.template !== null;
+            
+            if (hasContent && hasTone && hasTemplate) {
+                status.className = 'status success';
+                status.textContent = `✓ 已选择: ${state.tone} 口吻, ${state.template.name} 模板`;
+                nextBtn.disabled = false;
+            } else {
+                status.className = 'status error';
+                const missing = [];
+                if (!hasContent) missing.push('内容');
+                if (!hasTone) missing.push('口吻');
+                if (!hasTemplate) missing.push('模板');
+                status.textContent = `✗ 请选择: ${missing.join('、')}`;
+                nextBtn.disabled = true;
+            }
+        }
+
+        // 步骤导航
+        function goToStep1() {
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'none';
+            document.querySelector('.step').style.display = 'block';
+            state.currentStep = 1;
+        }
+
+        function goToStep2() {
+            updateStep1Status();
+            if (state.content.trim().length < 5) return;
+            
+            document.querySelector('.step').style.display = 'none';
+            document.getElementById('step3').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+            state.currentStep = 2;
+            updateStep2Status();
+        }
+
+        function goToStep3() {
+            updateStep2Status();
+            if (!state.tone || !state.template) return;
+            
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'block';
+            state.currentStep = 3;
+            
+            // 显示总结
+            document.getElementById('summary').innerHTML = `
+                <h4>生成设置总结:</h4>
+                <p><strong>内容:</strong> ${state.content}</p>
+                <p><strong>口吻:</strong> ${state.tone}</p>
+                <p><strong>模板:</strong> ${state.template.name}</p>
+                <div class="status success">✓ 所有设置已完成，可以开始生成图片！</div>
+            `;
+        }
+
+        function restart() {
+            state.content = '';
+            state.tone = '';
+            state.template = null;
+            document.getElementById('contentInput').value = '';
+            document.querySelectorAll('.tone-card, .template-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            goToStep1();
+        }
+
+        // 绑定输入事件
+        document.getElementById('contentInput').addEventListener('input', updateStep1Status);
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

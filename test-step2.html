@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>步骤2测试 - 小红书AI图片生成器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #6750A4;
+        }
+        .tone-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin: 15px 0;
+        }
+        .tone-card {
+            background-color: white;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .tone-card:hover {
+            border-color: #6750A4;
+            transform: translateY(-2px);
+        }
+        .tone-card.selected {
+            border-color: #6750A4;
+            background-color: #f3f0ff;
+        }
+        .tone-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        .tone-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .tone-desc {
+            font-size: 12px;
+            color: #666;
+        }
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 15px 0;
+        }
+        .template-card {
+            background-color: white;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .template-card:hover {
+            border-color: #6750A4;
+            transform: translateY(-2px);
+        }
+        .template-card.selected {
+            border-color: #6750A4;
+            background-color: #f3f0ff;
+        }
+        .template-preview {
+            width: 100%;
+            height: 80px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #6750A4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background: #5a4093;
+        }
+        .debug-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 步骤2功能测试</h1>
+        
+        <div class="test-section">
+            <h3>口吻选择测试</h3>
+            <div class="tone-grid" id="toneGrid">
+                <div class="tone-card" data-tone="friendly">
+                    <div class="tone-icon">😊</div>
+                    <div class="tone-name">亲切友好</div>
+                    <div class="tone-desc">温暖亲和，拉近距离</div>
+                </div>
+                <div class="tone-card" data-tone="professional">
+                    <div class="tone-icon">💼</div>
+                    <div class="tone-name">专业权威</div>
+                    <div class="tone-desc">严谨专业，值得信赖</div>
+                </div>
+                <div class="tone-card" data-tone="playful">
+                    <div class="tone-icon">🎉</div>
+                    <div class="tone-name">活泼可爱</div>
+                    <div class="tone-desc">轻松有趣，充满活力</div>
+                </div>
+                <div class="tone-card" data-tone="concise">
+                    <div class="tone-icon">⚡</div>
+                    <div class="tone-name">简洁干练</div>
+                    <div class="tone-desc">言简意赅，直击要点</div>
+                </div>
+            </div>
+            <div id="toneStatus" class="status info">请选择一个口吻</div>
+        </div>
+
+        <div class="test-section">
+            <h3>模板选择测试</h3>
+            <div class="template-grid" id="templateGrid">
+                <!-- 模板将在这里动态生成 -->
+            </div>
+            <div id="templateStatus" class="status info">正在加载模板...</div>
+            <button onclick="loadTemplates()">重新加载模板</button>
+        </div>
+
+        <div class="test-section">
+            <h3>验证结果</h3>
+            <div id="validationResult" class="status info">请完成上述选择</div>
+            <button id="nextStep" disabled onclick="proceedToNext()">下一步</button>
+        </div>
+
+        <div class="test-section">
+            <h3>调试信息</h3>
+            <div id="debugInfo" class="debug-info">等待操作...</div>
+            <button onclick="showDebugInfo()">显示调试信息</button>
+            <button onclick="clearDebugInfo()">清空调试信息</button>
+        </div>
+    </div>
+
+    <script>
+        // 测试状态
+        const testState = {
+            tone: '',
+            template: null
+        };
+
+        // 模板数据
+        const templates = [
+            {
+                id: 'lifestyle',
+                name: '🌸 生活方式',
+                description: '适合生活分享、日常记录',
+                preview_gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+            },
+            {
+                id: 'knowledge',
+                name: '📚 知识干货',
+                description: '适合知识分享、教程攻略',
+                preview_gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+            },
+            {
+                id: 'fashion',
+                name: '👗 时尚穿搭',
+                description: '适合穿搭分享、美妆教程',
+                preview_gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+            },
+            {
+                id: 'food',
+                name: '🍰 美食分享',
+                description: '适合美食推荐、菜谱分享',
+                preview_gradient: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)'
+            }
+        ];
+
+        // 初始化
+        function init() {
+            bindToneEvents();
+            loadTemplates();
+            updateValidation();
+            log('页面初始化完成');
+        }
+
+        // 绑定口吻选择事件
+        function bindToneEvents() {
+            const toneGrid = document.getElementById('toneGrid');
+            if (toneGrid) {
+                toneGrid.addEventListener('click', (e) => {
+                    const toneCard = e.target.closest('.tone-card');
+                    if (toneCard) {
+                        selectTone(toneCard.dataset.tone);
+                    }
+                });
+                log('口吻选择事件绑定成功');
+            } else {
+                log('ERROR: 口吻网格元素未找到');
+            }
+        }
+
+        // 选择口吻
+        function selectTone(tone) {
+            // 移除之前的选中状态
+            document.querySelectorAll('.tone-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // 添加新的选中状态
+            document.querySelector(`[data-tone="${tone}"]`).classList.add('selected');
+            
+            testState.tone = tone;
+            updateToneStatus();
+            updateValidation();
+            log(`选择口吻: ${tone}`);
+        }
+
+        // 加载模板
+        function loadTemplates() {
+            const templateGrid = document.getElementById('templateGrid');
+            if (!templateGrid) {
+                log('ERROR: 模板网格元素未找到');
+                return;
+            }
+
+            templateGrid.innerHTML = '';
+            
+            templates.forEach(template => {
+                const card = document.createElement('div');
+                card.className = 'template-card';
+                card.dataset.templateId = template.id;
+                
+                card.innerHTML = `
+                    <div class="template-name">${template.name}</div>
+                    <div class="template-description">${template.description}</div>
+                    <div class="template-preview" style="background: ${template.preview_gradient}">
+                        ${template.name}
+                    </div>
+                `;
+                
+                card.addEventListener('click', () => selectTemplate(template.id));
+                templateGrid.appendChild(card);
+            });
+
+            updateTemplateStatus();
+            log(`加载了 ${templates.length} 个模板`);
+        }
+
+        // 选择模板
+        function selectTemplate(templateId) {
+            // 移除之前的选中状态
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // 添加新的选中状态
+            document.querySelector(`[data-template-id="${templateId}"]`).classList.add('selected');
+            
+            testState.template = templates.find(t => t.id === templateId);
+            updateTemplateStatus();
+            updateValidation();
+            log(`选择模板: ${testState.template.name}`);
+        }
+
+        // 更新口吻状态
+        function updateToneStatus() {
+            const status = document.getElementById('toneStatus');
+            if (testState.tone) {
+                status.className = 'status success';
+                status.textContent = `✓ 已选择口吻: ${testState.tone}`;
+            } else {
+                status.className = 'status info';
+                status.textContent = '请选择一个口吻';
+            }
+        }
+
+        // 更新模板状态
+        function updateTemplateStatus() {
+            const status = document.getElementById('templateStatus');
+            if (testState.template) {
+                status.className = 'status success';
+                status.textContent = `✓ 已选择模板: ${testState.template.name}`;
+            } else {
+                status.className = 'status info';
+                status.textContent = '请选择一个模板';
+            }
+        }
+
+        // 更新验证结果
+        function updateValidation() {
+            const result = document.getElementById('validationResult');
+            const nextBtn = document.getElementById('nextStep');
+            
+            const isValid = testState.tone && testState.template;
+            
+            if (isValid) {
+                result.className = 'status success';
+                result.textContent = '✓ 所有选择已完成，可以进入下一步';
+                nextBtn.disabled = false;
+            } else {
+                result.className = 'status error';
+                const missing = [];
+                if (!testState.tone) missing.push('口吻');
+                if (!testState.template) missing.push('模板');
+                result.textContent = `✗ 还需要选择: ${missing.join('、')}`;
+                nextBtn.disabled = true;
+            }
+        }
+
+        // 进入下一步
+        function proceedToNext() {
+            if (testState.tone && testState.template) {
+                alert(`成功！\n口吻: ${testState.tone}\n模板: ${testState.template.name}\n\n可以进入下一步了！`);
+                log('验证通过，可以进入下一步');
+            }
+        }
+
+        // 显示调试信息
+        function showDebugInfo() {
+            const info = {
+                '当前状态': testState,
+                '口吻网格元素': !!document.getElementById('toneGrid'),
+                '模板网格元素': !!document.getElementById('templateGrid'),
+                '模板数量': templates.length,
+                '页面URL': window.location.href,
+                '时间戳': new Date().toLocaleString()
+            };
+            
+            document.getElementById('debugInfo').textContent = JSON.stringify(info, null, 2);
+        }
+
+        // 清空调试信息
+        function clearDebugInfo() {
+            document.getElementById('debugInfo').textContent = '调试信息已清空';
+        }
+
+        // 日志函数
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

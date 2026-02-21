@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSA技术卡片测试</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=LXGW+WenKai:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Modern CSS -->
+    <link rel="stylesheet" href="assets/css/modern-design.css">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #FFE4F1 0%, #E4F1FF 100%);
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .test-title {
+            text-align: center;
+            color: #7C4DFF;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .test-content {
+            background: #F8F4FF;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid #7C4DFF;
+        }
+        
+        .test-button {
+            background: linear-gradient(135deg, #7C4DFF, #E91E63);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 20px auto;
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(124, 77, 255, 0.3);
+        }
+        
+        .result-area {
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .generated-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            margin: 20px 0;
+        }
+        
+        .download-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .download-btn:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="test-title">🔬 NSA技术卡片生成测试</h1>
+        
+        <div class="test-content">
+            <h3>测试内容：NSA技术介绍</h3>
+            <p>这个测试页面将使用我们新添加的技术卡片模板来生成NSA技术的可视化卡片。</p>
+        </div>
+        
+        <button class="test-button" onclick="generateNSACard()">
+            🚀 生成NSA技术卡片
+        </button>
+        
+        <div class="result-area" id="resultArea">
+            <p>点击按钮开始生成技术卡片...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="assets/js/modern-image-generator.js"></script>
+    
+    <script>
+        // NSA技术内容
+        const nsaContent = `🚀 Introducing NSA: A Hardware-Aligned and Natively Trainable Sparse Attention mechanism for ultra-fast long-context training & inference!
+
+Core components of NSA:
+• Dynamic hierarchical sparse strategy
+• Coarse-grained token compression  
+• Fine-grained token selection
+
+💡 With optimized design for modern hardware, NSA speeds up inference while reducing pre-training costs—without compromising performance. It matches or outperforms Full Attention models on general benchmarks, long-context tasks, and instruction-based reasoning.
+
+📖 For more details, check out our paper here: https://arxiv.org/abs/2502.11089`;
+
+        let generator = null;
+        
+        // 初始化生成器
+        async function initGenerator() {
+            if (!generator) {
+                generator = new ModernImageGenerator();
+                await generator.init();
+                console.log('✅ Generator initialized');
+            }
+        }
+        
+        // 生成NSA卡片
+        async function generateNSACard() {
+            const resultArea = document.getElementById('resultArea');
+            
+            try {
+                resultArea.innerHTML = '<p>🔄 正在初始化生成器...</p>';
+                
+                // 初始化生成器
+                await initGenerator();
+                
+                resultArea.innerHTML = '<p>🎨 正在生成技术卡片...</p>';
+                
+                // 生成图片
+                const imageData = await generator.generateModernImage(
+                    nsaContent, 
+                    'material-tech-card',
+                    {
+                        quality: 'high',
+                        format: 'png'
+                    }
+                );
+                
+                // 显示结果
+                resultArea.innerHTML = `
+                    <h3>✅ 生成成功！</h3>
+                    <img src="${imageData.url}" alt="NSA技术卡片" class="generated-image">
+                    <div>
+                        <button class="download-btn" onclick="downloadImage('${imageData.url}')">
+                            📥 下载图片
+                        </button>
+                        <button class="download-btn" onclick="generateNSACard()">
+                            🔄 重新生成
+                        </button>
+                    </div>
+                    <p><small>尺寸: ${imageData.width}x${imageData.height} | 格式: ${imageData.format.toUpperCase()}</small></p>
+                `;
+                
+            } catch (error) {
+                console.error('生成失败:', error);
+                resultArea.innerHTML = `
+                    <h3>❌ 生成失败</h3>
+                    <p>错误信息: ${error.message}</p>
+                    <button class="test-button" onclick="generateNSACard()">🔄 重试</button>
+                `;
+            }
+        }
+        
+        // 下载图片
+        function downloadImage(dataUrl) {
+            const link = document.createElement('a');
+            link.download = `nsa-tech-card-${Date.now()}.png`;
+            link.href = dataUrl;
+            link.click();
+        }
+        
+        // 页面加载完成后的提示
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🔬 NSA技术卡片测试页面已加载');
+            console.log('📱 准备测试新的技术卡片模板');
+        });
+    </script>
+</body>
+</html>

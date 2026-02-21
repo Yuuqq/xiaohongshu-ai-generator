@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>调试页面 - 小红书AI图片生成器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .debug-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .debug-title {
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #6750A4;
+            padding-bottom: 5px;
+        }
+        .debug-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        button {
+            background: #6750A4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5a4093;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 小红书AI图片生成器 - 调试页面</h1>
+    
+    <div class="debug-panel">
+        <h2 class="debug-title">系统状态检查</h2>
+        <div id="systemStatus"></div>
+        <button onclick="checkSystemStatus()">检查系统状态</button>
+    </div>
+
+    <div class="debug-panel">
+        <h2 class="debug-title">模板系统测试</h2>
+        <div id="templateStatus"></div>
+        <button onclick="testTemplateSystem()">测试模板系统</button>
+        <button onclick="loadTemplatesManually()">手动加载模板</button>
+    </div>
+
+    <div class="debug-panel">
+        <h2 class="debug-title">预览系统测试</h2>
+        <div id="previewStatus"></div>
+        <button onclick="testPreviewSystem()">测试预览系统</button>
+        <button onclick="simulateStep2()">模拟步骤2操作</button>
+    </div>
+
+    <div class="debug-panel">
+        <h2 class="debug-title">控制台日志</h2>
+        <div id="consoleLog" class="debug-info" style="height: 200px; overflow-y: auto;"></div>
+        <button onclick="clearConsoleLog()">清空日志</button>
+    </div>
+
+    <script>
+        // 重写console.log来显示在页面上
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addToConsoleLog(message, type = 'log') {
+            const logDiv = document.getElementById('consoleLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.style.color = type === 'error' ? 'red' : type === 'warn' ? 'orange' : 'black';
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsoleLog(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsoleLog(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToConsoleLog(args.join(' '), 'warn');
+        };
+
+        function clearConsoleLog() {
+            document.getElementById('consoleLog').innerHTML = '';
+        }
+
+        function addStatus(containerId, message, type = 'success') {
+            const container = document.getElementById(containerId);
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            container.appendChild(status);
+        }
+
+        function clearStatus(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        function checkSystemStatus() {
+            clearStatus('systemStatus');
+            
+            // 检查全局对象
+            const modules = [
+                'Utils', 'templateManager', 'previewSystem', 
+                'contentOptimizer', 'visualGenerator', 'uiManager'
+            ];
+            
+            modules.forEach(module => {
+                if (window[module]) {
+                    addStatus('systemStatus', `✓ ${module} 已加载`, 'success');
+                } else {
+                    addStatus('systemStatus', `✗ ${module} 未加载`, 'error');
+                }
+            });
+            
+            // 检查DOM元素
+            const elements = ['templateGrid', 'nextStep2', 'toneGrid'];
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    addStatus('systemStatus', `✓ 元素 ${id} 存在`, 'success');
+                } else {
+                    addStatus('systemStatus', `✗ 元素 ${id} 不存在`, 'error');
+                }
+            });
+        }
+
+        function testTemplateSystem() {
+            clearStatus('templateStatus');
+            
+            if (!window.templateManager) {
+                addStatus('templateStatus', '模板管理器未加载', 'error');
+                return;
+            }
+            
+            addStatus('templateStatus', `模板数量: ${window.templateManager.templates?.length || 0}`, 'success');
+            
+            if (window.templateManager.templates) {
+                window.templateManager.templates.forEach((template, index) => {
+                    addStatus('templateStatus', `模板 ${index + 1}: ${template.name} (${template.id})`, 'success');
+                });
+            }
+            
+            // 测试模板选择
+            if (window.templateManager.templates && window.templateManager.templates.length > 0) {
+                const firstTemplate = window.templateManager.templates[0];
+                window.templateManager.selectTemplate(firstTemplate.id);
+                addStatus('templateStatus', `测试选择模板: ${firstTemplate.name}`, 'success');
+            }
+        }
+
+        function loadTemplatesManually() {
+            clearStatus('templateStatus');
+            
+            if (window.templateManager) {
+                window.templateManager.loadTemplates().then(() => {
+                    addStatus('templateStatus', '模板重新加载完成', 'success');
+                    testTemplateSystem();
+                }).catch(error => {
+                    addStatus('templateStatus', `模板加载失败: ${error.message}`, 'error');
+                });
+            } else {
+                addStatus('templateStatus', '模板管理器未初始化', 'error');
+            }
+        }
+
+        function testPreviewSystem() {
+            clearStatus('previewStatus');
+            
+            if (!window.previewSystem) {
+                addStatus('previewStatus', '预览系统未加载', 'error');
+                return;
+            }
+            
+            const stepData = window.previewSystem.getStepData();
+            addStatus('previewStatus', `当前步骤: ${window.previewSystem.currentStep}`, 'success');
+            addStatus('previewStatus', `内容: ${stepData.content || '无'}`, stepData.content ? 'success' : 'warning');
+            addStatus('previewStatus', `口吻: ${stepData.tone || '无'}`, stepData.tone ? 'success' : 'warning');
+            addStatus('previewStatus', `模板: ${stepData.template?.name || '无'}`, stepData.template ? 'success' : 'warning');
+            addStatus('previewStatus', `标签: ${stepData.customTags?.length || 0} 个`, 'success');
+        }
+
+        function simulateStep2() {
+            clearStatus('previewStatus');
+            
+            if (!window.previewSystem) {
+                addStatus('previewStatus', '预览系统未加载', 'error');
+                return;
+            }
+            
+            // 模拟设置内容
+            window.previewSystem.setStepData({
+                content: '这是一个测试内容，用于验证步骤2的功能是否正常工作。'
+            });
+            
+            // 模拟选择口吻
+            window.previewSystem.setStepData({
+                tone: 'friendly'
+            });
+            
+            // 模拟选择模板
+            if (window.templateManager && window.templateManager.templates && window.templateManager.templates.length > 0) {
+                window.previewSystem.setStepData({
+                    template: window.templateManager.templates[0]
+                });
+            }
+            
+            // 验证步骤2
+            const isValid = window.previewSystem.validateStep2();
+            addStatus('previewStatus', `步骤2验证结果: ${isValid ? '通过' : '失败'}`, isValid ? 'success' : 'error');
+            
+            testPreviewSystem();
+        }
+
+        // 页面加载完成后自动检查
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                checkSystemStatus();
+                testTemplateSystem();
+                testPreviewSystem();
+            }, 2000);
+        });
+    </script>
+
+    <!-- 加载主要脚本 -->
+    <script src="assets/js/utils.js"></script>
+    <script src="assets/js/prompt-engine.js"></script>
+    <script src="assets/js/templates.js"></script>
+    <script src="assets/js/content-optimizer.js"></script>
+    <script src="assets/js/visual-generator.js"></script>
+    <script src="assets/js/preview-system.js"></script>
+    <script src="assets/js/performance-optimizer.js"></script>
+    <script src="assets/js/ui.js"></script>
+    <script src="assets/js/generator.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html>
