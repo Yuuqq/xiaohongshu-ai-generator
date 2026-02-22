@@ -25,7 +25,7 @@
 - **前端**: HTML5, CSS3, JavaScript (ES6+)
 - **API**: Google Gemini API
 - **设计**: Material Design 3.0
-- **字体**: Google Fonts
+- **字体**: 系统中文字体栈（本地优先）
 - **图标**: Material Icons
 
 ## 📁 项目结构

@@ -48,17 +48,33 @@ class AdvancedImageGenerator {
                 return;
             }
 
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js';
-            script.onload = () => {
-                DEBUG.log('Fabric.js 加载完成');
-                resolve();
+            const fabricSources = [
+                'https://cdn.staticfile.org/fabric.js/5.3.0/fabric.min.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js'
+            ];
+
+            const tryLoad = (index) => {
+                if (index >= fabricSources.length) {
+                    DEBUG.error('Fabric.js 所有镜像源都加载失败');
+                    reject(new Error('Fabric.js 加载失败'));
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = fabricSources[index];
+                script.onload = () => {
+                    DEBUG.log(`Fabric.js 加载完成: ${fabricSources[index]}`);
+                    resolve();
+                };
+                script.onerror = () => {
+                    DEBUG.warn(`Fabric.js 加载失败，尝试下一个源: ${fabricSources[index]}`);
+                    script.remove();
+                    tryLoad(index + 1);
+                };
+                document.head.appendChild(script);
             };
-            script.onerror = () => {
-                DEBUG.error('Fabric.js 加载失败');
-                reject(new Error('Fabric.js 加载失败'));
-            };
-            document.head.appendChild(script);
+
+            tryLoad(0);
         });
     }
 

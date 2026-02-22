@@ -10,6 +10,7 @@ class VisualGenerator {
         this.isGenerating = false;
         this.cardTemplates = {};
         this.fontLoaded = false;
+        this.systemFontFamily = '"PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", "Helvetica Neue", Arial, sans-serif';
         
         this.init();
     }
@@ -29,19 +30,9 @@ class VisualGenerator {
      */
     async loadFonts() {
         try {
-            // 加载Google Fonts
-            const fontFaces = [
-                new FontFace('Google Sans', 'url(https://fonts.gstatic.com/s/googlesans/v14/4UaGrENHsxJlGDuGo1OIlL3Owp5eKQtGBlc.woff2)'),
-                new FontFace('Roboto', 'url(https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2)')
-            ];
-
-            await Promise.all(fontFaces.map(font => {
-                document.fonts.add(font);
-                return font.load();
-            }));
-
+            // 使用本地系统字体栈，避免依赖海外字体域名
             this.fontLoaded = true;
-            DEBUG.log('字体加载完成');
+            DEBUG.log('系统字体栈已就绪');
         } catch (error) {
             DEBUG.warn('字体加载失败，使用系统默认字体:', error);
             this.fontLoaded = false;
@@ -249,7 +240,7 @@ class VisualGenerator {
         const title = content.split('\n')[0].substring(0, 20) + (content.length > 20 ? '...' : '');
         
         // 设置标题样式
-        this.ctx.font = this.fontLoaded ? 'bold 32px "Google Sans"' : 'bold 32px sans-serif';
+        this.ctx.font = this.fontLoaded ? `bold 32px ${this.systemFontFamily}` : 'bold 32px sans-serif';
         this.ctx.fillStyle = textColor;
         
         // 绘制标题背景
@@ -282,7 +273,7 @@ class VisualGenerator {
         this.ctx.fill();
         
         // 设置内容文字样式
-        this.ctx.font = this.fontLoaded ? '18px "Roboto"' : '18px sans-serif';
+        this.ctx.font = this.fontLoaded ? `18px ${this.systemFontFamily}` : '18px sans-serif';
         this.ctx.fillStyle = textColor;
         
         // 分段绘制内容
@@ -322,7 +313,7 @@ class VisualGenerator {
             
             // 绘制标签文字
             this.ctx.fillStyle = 'white';
-            this.ctx.font = this.fontLoaded ? '14px "Google Sans"' : '14px sans-serif';
+            this.ctx.font = this.fontLoaded ? `14px ${this.systemFontFamily}` : '14px sans-serif';
             this.ctx.fillText(`#${tag}`, x + 10, y + 6);
             
             x += tagWidth + 10;
@@ -441,7 +432,7 @@ class VisualGenerator {
      */
     async drawWatermark() {
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-        this.ctx.font = this.fontLoaded ? '12px "Google Sans"' : '12px sans-serif';
+        this.ctx.font = this.fontLoaded ? `12px ${this.systemFontFamily}` : '12px sans-serif';
         this.ctx.textAlign = 'right';
         this.ctx.fillText('Created with AI Generator', 520, 940);
         this.ctx.textAlign = 'left'; // 重置对齐方式

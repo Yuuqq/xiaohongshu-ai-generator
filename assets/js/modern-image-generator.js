@@ -51,20 +51,39 @@ class ModernImageGenerator {
         const dependencies = [
             {
                 name: 'html2canvas',
-                url: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+                urls: [
+                    'https://cdn.staticfile.org/html2canvas/1.4.1/html2canvas.min.js',
+                    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
+                ],
                 check: () => typeof html2canvas !== 'undefined'
             },
             {
                 name: 'gsap',
-                url: 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js',
+                urls: [
+                    'https://cdn.staticfile.org/gsap/3.12.2/gsap.min.js',
+                    'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js'
+                ],
                 check: () => typeof gsap !== 'undefined'
             }
         ];
 
         for (const dep of dependencies) {
             if (!dep.check()) {
-                await this.loadScript(dep.url);
-                console.log(`✅ Loaded ${dep.name}`);
+                let loaded = false;
+                for (const url of dep.urls) {
+                    try {
+                        await this.loadScript(url);
+                        console.log(`✅ Loaded ${dep.name} from ${url}`);
+                        loaded = true;
+                        break;
+                    } catch (error) {
+                        console.warn(`⚠️ Failed loading ${dep.name} from ${url}`, error);
+                    }
+                }
+
+                if (!loaded) {
+                    throw new Error(`Failed to load dependency: ${dep.name}`);
+                }
             }
         }
     }
@@ -102,7 +121,7 @@ class ModernImageGenerator {
             width: 540px;
             height: 960px;
             background: white;
-            font-family: 'Google Sans', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
             overflow: hidden;
             z-index: -1000;
             transform: scale(1);

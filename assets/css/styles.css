@@ -12,6 +12,8 @@
 
 /* ===== DESIGN TOKENS ===== */
 :root {
+    --app-font-sans: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+
     /* Material Design 3.0 Color System */
     --md-sys-color-primary: #6750A4;
     --md-sys-color-on-primary: #FFFFFF;
@@ -53,37 +55,37 @@
     --md-sys-elevation-level5: 0px 4px 4px 0px rgba(0, 0, 0, 0.3), 0px 8px 12px 6px rgba(0, 0, 0, 0.15);
 
     /* Typography Scale */
-    --md-sys-typescale-display-large-font: 'Google Sans';
+    --md-sys-typescale-display-large-font: var(--app-font-sans);
     --md-sys-typescale-display-large-size: 57px;
     --md-sys-typescale-display-large-weight: 400;
     --md-sys-typescale-display-large-line-height: 64px;
 
-    --md-sys-typescale-headline-large-font: 'Google Sans';
+    --md-sys-typescale-headline-large-font: var(--app-font-sans);
     --md-sys-typescale-headline-large-size: 32px;
     --md-sys-typescale-headline-large-weight: 400;
     --md-sys-typescale-headline-large-line-height: 40px;
 
-    --md-sys-typescale-headline-medium-font: 'Google Sans';
+    --md-sys-typescale-headline-medium-font: var(--app-font-sans);
     --md-sys-typescale-headline-medium-size: 28px;
     --md-sys-typescale-headline-medium-weight: 400;
     --md-sys-typescale-headline-medium-line-height: 36px;
 
-    --md-sys-typescale-title-large-font: 'Google Sans';
+    --md-sys-typescale-title-large-font: var(--app-font-sans);
     --md-sys-typescale-title-large-size: 22px;
     --md-sys-typescale-title-large-weight: 400;
     --md-sys-typescale-title-large-line-height: 28px;
 
-    --md-sys-typescale-body-large-font: 'Roboto';
+    --md-sys-typescale-body-large-font: var(--app-font-sans);
     --md-sys-typescale-body-large-size: 16px;
     --md-sys-typescale-body-large-weight: 400;
     --md-sys-typescale-body-large-line-height: 24px;
 
-    --md-sys-typescale-body-medium-font: 'Roboto';
+    --md-sys-typescale-body-medium-font: var(--app-font-sans);
     --md-sys-typescale-body-medium-size: 14px;
     --md-sys-typescale-body-medium-weight: 400;
     --md-sys-typescale-body-medium-line-height: 20px;
 
-    --md-sys-typescale-label-large-font: 'Roboto';
+    --md-sys-typescale-label-large-font: var(--app-font-sans);
     --md-sys-typescale-label-large-size: 14px;
     --md-sys-typescale-label-large-weight: 500;
     --md-sys-typescale-label-large-line-height: 20px;

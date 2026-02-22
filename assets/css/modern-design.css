@@ -25,7 +25,7 @@
     }
 
     body {
-        font-family: 'Google Sans', 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family: var(--app-font-sans);
         line-height: 1.5;
         color: var(--md-sys-color-on-background);
         background-color: var(--md-sys-color-background);
@@ -35,6 +35,8 @@
 /* ===== DESIGN TOKENS ===== */
 @layer tokens {
     :root {
+        --app-font-sans: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+
         /* Material Design 3.0 Color System */
         --md-sys-color-primary: #6750A4;
         --md-sys-color-on-primary: #FFFFFF;
@@ -72,37 +74,37 @@
         --md-sys-color-inverse-primary: #D0BCFF;
         
         /* Typography Scale */
-        --md-sys-typescale-display-large-font: 'Google Sans';
+        --md-sys-typescale-display-large-font: var(--app-font-sans);
         --md-sys-typescale-display-large-size: 3.5625rem; /* 57px */
         --md-sys-typescale-display-large-weight: 400;
         --md-sys-typescale-display-large-line-height: 4rem; /* 64px */
         
-        --md-sys-typescale-display-medium-font: 'Google Sans';
+        --md-sys-typescale-display-medium-font: var(--app-font-sans);
         --md-sys-typescale-display-medium-size: 2.8125rem; /* 45px */
         --md-sys-typescale-display-medium-weight: 400;
         --md-sys-typescale-display-medium-line-height: 3.25rem; /* 52px */
         
-        --md-sys-typescale-headline-large-font: 'Google Sans';
+        --md-sys-typescale-headline-large-font: var(--app-font-sans);
         --md-sys-typescale-headline-large-size: 2rem; /* 32px */
         --md-sys-typescale-headline-large-weight: 400;
         --md-sys-typescale-headline-large-line-height: 2.5rem; /* 40px */
         
-        --md-sys-typescale-headline-medium-font: 'Google Sans';
+        --md-sys-typescale-headline-medium-font: var(--app-font-sans);
         --md-sys-typescale-headline-medium-size: 1.75rem; /* 28px */
         --md-sys-typescale-headline-medium-weight: 400;
         --md-sys-typescale-headline-medium-line-height: 2.25rem; /* 36px */
         
-        --md-sys-typescale-title-large-font: 'Roboto';
+        --md-sys-typescale-title-large-font: var(--app-font-sans);
         --md-sys-typescale-title-large-size: 1.375rem; /* 22px */
         --md-sys-typescale-title-large-weight: 500;
         --md-sys-typescale-title-large-line-height: 1.75rem; /* 28px */
         
-        --md-sys-typescale-body-large-font: 'Roboto';
+        --md-sys-typescale-body-large-font: var(--app-font-sans);
         --md-sys-typescale-body-large-size: 1rem; /* 16px */
         --md-sys-typescale-body-large-weight: 400;
         --md-sys-typescale-body-large-line-height: 1.5rem; /* 24px */
         
-        --md-sys-typescale-body-medium-font: 'Roboto';
+        --md-sys-typescale-body-medium-font: var(--app-font-sans);
         --md-sys-typescale-body-medium-size: 0.875rem; /* 14px */
         --md-sys-typescale-body-medium-weight: 400;
         --md-sys-typescale-body-medium-line-height: 1.25rem; /* 20px */

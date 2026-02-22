@@ -1,0 +1,4 @@
+# Temporary artifacts from local vendoring steps
+/material-icons-*.tgz
+/package/
+/nul
