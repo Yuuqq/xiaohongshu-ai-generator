@@ -555,24 +555,28 @@
                         <span class="material-icons">close</span>
                     </button>
                 </div>
-                <div class="modal-body">
-                    <div class="setting-group">
-                        <label for="apiKeyInput" class="setting-label">Google Gemini API密钥</label>
-                        <input 
-                            type="password" 
-                            id="apiKeyInput" 
-                            class="setting-input" 
-                            placeholder="输入您的API密钥"
-                        >
-                        <p class="setting-help">
-                            <span class="material-icons">info</span>
-                            请在Google AI Studio获取您的API密钥
-                        </p>
+                <form id="settingsForm" autocomplete="on" onsubmit="return false;">
+                    <div class="modal-body">
+                        <div class="setting-group">
+                            <label for="apiKeyInput" class="setting-label">Google Gemini API密钥</label>
+                            <input
+                                type="password"
+                                id="apiKeyInput"
+                                name="apiKey"
+                                class="setting-input"
+                                placeholder="输入您的API密钥"
+                                autocomplete="off"
+                            >
+                            <p class="setting-help">
+                                <span class="material-icons">info</span>
+                                请在Google AI Studio获取您的API密钥
+                            </p>
+                        </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button id="saveSettings" class="primary-button">保存设置</button>
-                </div>
+                    <div class="modal-footer">
+                        <button id="saveSettings" type="button" class="primary-button">保存设置</button>
+                    </div>
+                </form>
             </div>
         </div>
 

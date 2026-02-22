@@ -533,7 +533,9 @@ class AdvancedImageGenerator {
         }
 
         // 渲染段落
-        layout.sections.forEach((section, index) => {
+        for (let index = 0; index < layout.sections.length; index++) {
+            const section = layout.sections[index];
+
             // 检测段落类型并应用不同样式
             const isListItem = this.isListItem(section.content);
             const isNumbered = this.isNumberedItem(section.content);
@@ -564,7 +566,7 @@ class AdvancedImageGenerator {
                 await this.addSectionDivider(currentY, templateConfig, analysis);
                 currentY += analysis.spacing.section;
             }
-        });
+        }
     }
 
     /**

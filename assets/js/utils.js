@@ -267,7 +267,14 @@ class Utils {
         get(key, defaultValue = null) {
             try {
                 const item = localStorage.getItem(key);
-                return item ? JSON.parse(item) : defaultValue;
+                if (!item) return defaultValue;
+
+                try {
+                    return JSON.parse(item);
+                } catch {
+                    // 兼容历史数据：某些 key 可能曾以纯字符串存储
+                    return item;
+                }
             } catch (e) {
                 console.error('读取失败:', e);
                 return defaultValue;
