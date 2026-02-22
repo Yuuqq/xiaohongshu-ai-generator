@@ -14,10 +14,14 @@ class UIManager {
      * 初始化UI管理器
      */
     init() {
+        if (this._initialized) return;
+        this._initialized = true;
+
         this.initModals();
         this.initToasts();
         this.initInputHandlers();
         this.initButtonHandlers();
+        this.loadSettings();
         DEBUG.log('UI管理器初始化完成');
     }
 
@@ -309,9 +313,13 @@ class UIManager {
             return;
         }
 
-        // 保存到本地存储
-        localStorage.setItem('gemini_api_key', apiKey);
-        
+        // 统一通过 app 状态管理保存，避免存储格式不一致
+        if (window.app) {
+            window.app.setApiKey(apiKey);
+        } else {
+            Utils.storage.set('gemini_api_key', apiKey);
+        }
+
         // 更新生成器配置
         if (window.imageGenerator) {
             window.imageGenerator.setApiKey(apiKey);
