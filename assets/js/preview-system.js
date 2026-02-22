@@ -1113,19 +1113,19 @@ class PreviewSystem {
         const generationTime = this.calculateGenerationTime();
 
         // 更新图片数量
-        const imageCountElement = document.querySelector('.export-stats .stat-value');
+        const imageCountElement = document.getElementById('totalImages');
         if (imageCountElement) {
             imageCountElement.textContent = imageCount;
         }
 
         // 更新总大小
-        const totalSizeElement = document.querySelectorAll('.export-stats .stat-value')[1];
+        const totalSizeElement = document.getElementById('totalSize');
         if (totalSizeElement) {
             totalSizeElement.textContent = this.formatFileSize(totalSize);
         }
 
         // 更新生成时间
-        const generationTimeElement = document.querySelectorAll('.export-stats .stat-value')[2];
+        const generationTimeElement = document.getElementById('generationTime');
         if (generationTimeElement) {
             generationTimeElement.textContent = generationTime;
         }
