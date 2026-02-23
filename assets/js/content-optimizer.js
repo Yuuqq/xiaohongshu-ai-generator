@@ -9,6 +9,8 @@ class ContentOptimizer {
         this.isOptimizing = false;
         this.optimizationHistory = [];
         this._initialized = false;
+        this.apiBase = 'https://generativelanguage.googleapis.com/v1beta/models';
+        this.textModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-latest'];
         
         // 口吻配置
         this.toneConfigs = {
@@ -234,18 +236,86 @@ ${content}
         }
 
         try {
-            // 模拟API调用延迟和优化过程
-            await this.simulateOptimization();
+            this.updateOptimizationProgress(20, '连接 Gemini 优化模型...');
 
-            // 这里应该调用真实的Gemini API
-            // 目前使用模拟优化结果
-            const optimizedContent = this.generateMockOptimization(prompt);
-            
-            return optimizedContent;
+            let lastError = null;
+            for (const model of this.textModels) {
+                try {
+                    this.updateOptimizationProgress(40, `正在使用 ${model} 优化内容...`);
+
+                    const response = await this.makeGeminiRequest(model, {
+                        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            temperature: 0.7,
+                            topP: 0.9,
+                            maxOutputTokens: 2048
+                        }
+                    });
+
+                    const optimizedContent = this.extractTextFromGeminiResponse(response);
+                    if (!optimizedContent) {
+                        throw new Error(`模型 ${model} 未返回有效文本`);
+                    }
+
+                    this.updateOptimizationProgress(100, '优化完成！');
+                    return this.normalizeOptimizedText(optimizedContent);
+                } catch (modelError) {
+                    lastError = modelError;
+                    DEBUG.warn(`内容优化模型 ${model} 调用失败:`, modelError);
+                }
+            }
+
+            throw lastError || new Error('所有优化模型均不可用');
         } catch (error) {
             DEBUG.error('API调用失败:', error);
             throw new Error('内容优化服务暂时不可用，请稍后重试');
         }
+    }
+
+    /**
+     * 调用 Gemini 文本模型
+     */
+    async makeGeminiRequest(model, payload) {
+        const response = await fetch(`${this.apiBase}/${model}:generateContent`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': this.apiKey
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.error?.message || `Gemini 请求失败: ${response.status}`);
+        }
+
+        return data;
+    }
+
+    /**
+     * 从 Gemini 响应中提取文本
+     */
+    extractTextFromGeminiResponse(response) {
+        const candidates = response?.candidates || [];
+        for (const candidate of candidates) {
+            const parts = candidate?.content?.parts || [];
+            const textParts = parts.map(part => part?.text).filter(Boolean);
+            if (textParts.length > 0) {
+                return textParts.join('\n').trim();
+            }
+        }
+        return '';
+    }
+
+    /**
+     * 清理优化结果文本
+     */
+    normalizeOptimizedText(text) {
+        return text
+            .replace(/^```(?:markdown|text)?/i, '')
+            .replace(/```$/i, '')
+            .trim();
     }
 
     /**

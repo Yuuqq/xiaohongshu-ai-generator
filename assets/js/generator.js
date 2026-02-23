@@ -10,12 +10,10 @@ class ImageGenerator {
         this.generationQueue = [];
         this.maxRetries = 3;
         this.retryDelay = 2000;
-        
-        // API端点配置
-        this.endpoints = {
-            textGeneration: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-            imageGeneration: 'https://generativelanguage.googleapis.com/v1beta/models/imagen-2:generateImage'
-        };
+
+        this.apiBase = 'https://generativelanguage.googleapis.com/v1beta/models';
+        this.textModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-latest'];
+        this.imageModels = ['gemini-2.5-flash-image', 'gemini-2.0-flash-preview-image-generation'];
     }
 
     /**
@@ -43,13 +41,17 @@ class ImageGenerator {
 
         try {
             // 发送测试请求验证API密钥
-            const response = await this.makeApiRequest(this.endpoints.textGeneration, {
+            const response = await this.makeApiRequest(`${this.apiBase}/${this.textModels[0]}:generateContent`, {
                 contents: [{
                     parts: [{ text: 'Hello' }]
-                }]
+                }],
+                generationConfig: {
+                    maxOutputTokens: 16,
+                    temperature: 0
+                }
             }, keyToValidate);
 
-            return response.ok;
+            return !!response?.candidates?.length;
         } catch (error) {
             DEBUG.error('API密钥验证失败:', error);
             return false;
@@ -183,6 +185,15 @@ class ImageGenerator {
      */
     async callImageGenerationAPI(prompt, settings) {
         try {
+            // 优先使用 Gemini 图片 API
+            if (settings.useGeminiApi !== false) {
+                try {
+                    return await this.generateWithGeminiImageAPI(prompt, settings);
+                } catch (apiError) {
+                    DEBUG.warn('Gemini 图片 API 生成失败，回退到本地高级生成器:', apiError);
+                }
+            }
+
             // 检查是否有高级图片生成器
             if (window.advancedImageGenerator && settings.useAdvancedGenerator !== false) {
                 return await this.generateWithAdvancedGenerator(prompt, settings);
@@ -201,6 +212,209 @@ class ImageGenerator {
             DEBUG.error('API调用失败:', error);
             throw new Error('图片生成服务暂时不可用，请稍后重试');
         }
+    }
+
+    /**
+     * 使用 Gemini 图片 API 生成图片
+     */
+    async generateWithGeminiImageAPI(prompt, settings) {
+        const results = [];
+        const template = settings.template || window.templateManager?.getSelectedTemplate() || { id: 'xiaohongshu-lifestyle', name: '默认模板', category: 'lifestyle' };
+        const tone = settings.tone || 'friendly';
+        const sections = window.previewSystem?.stepData?.contentAnalysis?.sections || [];
+
+        const tasks = sections.length > 0
+            ? sections.slice(0, settings.imageCount).map((section, index) => ({
+                  content: section.content,
+                  title: section.title,
+                  index
+              }))
+            : Array.from({ length: settings.imageCount }, (_, index) => ({
+                  content: window.previewSystem?.stepData?.optimizedContent || window.previewSystem?.stepData?.content || prompt,
+                  title: '',
+                  index
+              }));
+
+        for (const task of tasks) {
+            const imagePrompt = this.buildGeminiImagePrompt(prompt, task.content, template, tone, settings, task.index, task.title);
+            const imageData = await this.requestGeminiImage(imagePrompt, settings);
+
+            results.push({
+                url: imageData.url,
+                blob: imageData.blob,
+                width: imageData.width,
+                height: imageData.height,
+                prompt: imagePrompt,
+                sectionTitle: task.title,
+                sectionIndex: task.index,
+                variation: task.index + 1
+            });
+
+            if (window.uiManager) {
+                const progress = Math.round(((task.index + 1) / tasks.length) * 70) + 10;
+                window.uiManager.updateProgress(progress, `Gemini 正在生成第 ${task.index + 1} 张图片...`);
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * 构建 Gemini 图片生成提示词
+     */
+    buildGeminiImagePrompt(basePrompt, content, template, tone, settings, index, sectionTitle = '') {
+        const toneDescriptions = {
+            friendly: '亲切友好',
+            professional: '专业权威',
+            playful: '活泼可爱',
+            concise: '简洁干练',
+            elegant: '优雅文艺',
+            trendy: '潮流时尚'
+        };
+
+        const variationTips = [
+            '强调标题视觉冲击力和封面吸引力',
+            '强调正文信息层级与可读性',
+            '强调配色细节与背景质感',
+            '强调图文对比和留白',
+            '强调图标点缀与布局平衡'
+        ];
+
+        const variationTip = variationTips[index % variationTips.length];
+        const aspectRatio = settings.aspectRatio || '9:16';
+
+        return `你是小红书视觉设计师。请输出一张高质量中文图片。
+
+主题内容：${content}
+${sectionTitle ? `小节标题：${sectionTitle}` : ''}
+模板：${template.name}（${template.category || 'lifestyle'}）
+写作口吻：${toneDescriptions[tone] || '亲切友好'}
+画面比例：${aspectRatio}
+画面风格：${settings.imageStyle || 'illustration'}
+质量要求：${settings.quality === 'high' ? '高清细节' : '标准清晰度'}
+变化要求：第 ${index + 1} 张图，${variationTip}
+
+设计要求：
+1. 文字全部使用简体中文，保证可读性。
+2. 适配移动端竖屏浏览，信息层次清晰。
+3. 风格要与模板类型一致，避免千篇一律。
+4. 不要出现水印、品牌 Logo、无关英文段落。
+
+补充参考（可择优吸收）：${basePrompt.slice(0, 1200)}`;
+    }
+
+    /**
+     * 请求 Gemini 图片模型并解析返回图片
+     */
+    async requestGeminiImage(prompt, settings) {
+        let lastError = null;
+
+        for (const model of this.imageModels) {
+            try {
+                const payload = {
+                    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseModalities: ['IMAGE', 'TEXT'],
+                        temperature: 0.8
+                    }
+                };
+
+                const response = await this.makeApiRequest(`${this.apiBase}/${model}:generateContent`, payload);
+                const imagePart = this.extractImagePart(response);
+
+                if (!imagePart?.data) {
+                    throw new Error(`模型 ${model} 未返回图片数据`);
+                }
+
+                const mimeType = imagePart.mimeType || 'image/png';
+                const blob = this.base64ToBlob(imagePart.data, mimeType);
+                const url = URL.createObjectURL(blob);
+                const size = await this.measureImageSize(blob);
+
+                return {
+                    url,
+                    blob,
+                    width: size.width,
+                    height: size.height
+                };
+            } catch (error) {
+                lastError = error;
+                DEBUG.warn(`Gemini 图片模型 ${model} 调用失败:`, error);
+            }
+        }
+
+        throw lastError || new Error('Gemini 图片模型不可用');
+    }
+
+    /**
+     * 从 Gemini 响应中提取图片部分
+     */
+    extractImagePart(response) {
+        const candidates = response?.candidates || [];
+        for (const candidate of candidates) {
+            const parts = candidate?.content?.parts || [];
+            for (const part of parts) {
+                if (part?.inlineData?.data) {
+                    return {
+                        data: part.inlineData.data,
+                        mimeType: part.inlineData.mimeType
+                    };
+                }
+                if (part?.inline_data?.data) {
+                    return {
+                        data: part.inline_data.data,
+                        mimeType: part.inline_data.mime_type
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Base64 转 Blob
+     */
+    base64ToBlob(base64Data, mimeType = 'image/png') {
+        const byteCharacters = atob(base64Data);
+        const byteArrays = [];
+        const chunkSize = 1024;
+
+        for (let offset = 0; offset < byteCharacters.length; offset += chunkSize) {
+            const slice = byteCharacters.slice(offset, offset + chunkSize);
+            const byteNumbers = new Array(slice.length);
+            for (let i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+            }
+            byteArrays.push(new Uint8Array(byteNumbers));
+        }
+
+        return new Blob(byteArrays, { type: mimeType });
+    }
+
+    /**
+     * 测量图片尺寸
+     */
+    async measureImageSize(blob) {
+        return new Promise((resolve) => {
+            const probeUrl = URL.createObjectURL(blob);
+            const img = new Image();
+
+            img.onload = () => {
+                const size = {
+                    width: img.naturalWidth || img.width || 0,
+                    height: img.naturalHeight || img.height || 0
+                };
+                URL.revokeObjectURL(probeUrl);
+                resolve(size);
+            };
+
+            img.onerror = () => {
+                URL.revokeObjectURL(probeUrl);
+                resolve({ width: 0, height: 0 });
+            };
+
+            img.src = probeUrl;
+        });
     }
 
     /**
@@ -593,20 +807,22 @@ class ImageGenerator {
     async makeApiRequest(url, data, apiKey = null) {
         const key = apiKey || this.apiKey;
         
-        const response = await fetch(`${url}?key=${key}`, {
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'x-goog-api-key': key
             },
             body: JSON.stringify(data)
         });
 
+        const responseData = await response.json().catch(() => ({}));
+
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error?.message || `API请求失败: ${response.status}`);
+            throw new Error(responseData.error?.message || `API请求失败: ${response.status}`);
         }
 
-        return response;
+        return responseData;
     }
 
     /**

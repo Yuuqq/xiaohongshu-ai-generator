@@ -324,6 +324,9 @@ class UIManager {
         if (window.imageGenerator) {
             window.imageGenerator.setApiKey(apiKey);
         }
+        if (window.contentOptimizer && typeof window.contentOptimizer.setApiKey === 'function') {
+            window.contentOptimizer.setApiKey(apiKey);
+        }
 
         this.showToast('设置已保存', 'success');
         this.closeModal('settings');
@@ -334,7 +337,7 @@ class UIManager {
      */
     loadSettings() {
         const apiKeyInput = document.getElementById('apiKeyInput');
-        const savedApiKey = localStorage.getItem('gemini_api_key');
+        const savedApiKey = Utils.storage.get('gemini_api_key', '');
 
         if (savedApiKey && apiKeyInput) {
             apiKeyInput.value = savedApiKey;
@@ -342,6 +345,9 @@ class UIManager {
             // 自动配置生成器
             if (window.imageGenerator) {
                 window.imageGenerator.setApiKey(savedApiKey);
+            }
+            if (window.contentOptimizer && typeof window.contentOptimizer.setApiKey === 'function') {
+                window.contentOptimizer.setApiKey(savedApiKey);
             }
         }
     }
