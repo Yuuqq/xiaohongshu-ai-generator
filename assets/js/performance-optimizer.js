@@ -9,6 +9,7 @@ class PerformanceOptimizer {
         this.loadingStates = new Map();
         this.debounceTimers = new Map();
         this.intersectionObserver = null;
+        this._initialized = false;
         this.init();
     }
 
@@ -16,6 +17,11 @@ class PerformanceOptimizer {
      * 初始化性能优化器
      */
     init() {
+        if (this._initialized) {
+            return;
+        }
+        this._initialized = true;
+
         this.setupPerformanceMonitoring();
         this.setupLazyLoading();
         this.setupImageOptimization();

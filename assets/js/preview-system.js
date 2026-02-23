@@ -16,6 +16,7 @@ class PreviewSystem {
             generationSettings: {}
         };
         this.previewUpdateTimeout = null;
+        this._initialized = false;
         this.init();
     }
 
@@ -23,6 +24,11 @@ class PreviewSystem {
      * 初始化预览系统
      */
     init() {
+        if (this._initialized) {
+            return;
+        }
+        this._initialized = true;
+
         this.bindStepNavigation();
         this.bindInputEvents();
         this.bindToneSelection();

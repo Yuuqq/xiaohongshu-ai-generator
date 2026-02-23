@@ -8,6 +8,7 @@ class ContentOptimizer {
         this.apiKey = '';
         this.isOptimizing = false;
         this.optimizationHistory = [];
+        this._initialized = false;
         
         // 口吻配置
         this.toneConfigs = {
@@ -57,6 +58,12 @@ class ContentOptimizer {
             this.apiKey = (window.app && typeof window.app.getApiKey === 'function')
                 ? window.app.getApiKey()
                 : '';
+
+            if (this._initialized) {
+                return;
+            }
+            this._initialized = true;
+
             this.loadOptimizationHistory();
             this.bindOptimizationEvents();
             DEBUG.log('内容优化引擎初始化完成');

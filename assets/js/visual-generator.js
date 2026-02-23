@@ -11,6 +11,7 @@ class VisualGenerator {
         this.cardTemplates = {};
         this.fontLoaded = false;
         this.systemFontFamily = '"PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", "Helvetica Neue", Arial, sans-serif';
+        this._initPromise = null;
         
         this.init();
     }
@@ -19,10 +20,18 @@ class VisualGenerator {
      * 初始化视觉生成器
      */
     async init() {
-        await this.loadFonts();
-        this.setupCanvas();
-        this.loadCardTemplates();
-        DEBUG.log('视觉生成器初始化完成');
+        if (this._initPromise) {
+            return this._initPromise;
+        }
+
+        this._initPromise = (async () => {
+            await this.loadFonts();
+            this.setupCanvas();
+            this.loadCardTemplates();
+            DEBUG.log('视觉生成器初始化完成');
+        })();
+
+        return this._initPromise;
     }
 
     /**
