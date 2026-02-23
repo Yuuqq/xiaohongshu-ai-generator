@@ -387,9 +387,11 @@ class AdvancedImageGenerator {
     async setBackground(templateConfig, options) {
         // 设置背景色
         this.fabricCanvas.backgroundColor = templateConfig.backgroundColor;
-        
+
+        const backgroundStyle = options.backgroundStyle || 'gradient';
+
         // 添加渐变背景
-        if (options.backgroundStyle === 'gradient') {
+        if (backgroundStyle === 'gradient') {
             const gradient = new fabric.Gradient({
                 type: 'linear',
                 coords: {
@@ -411,6 +413,34 @@ class AdvancedImageGenerator {
                 selectable: false
             });
             
+            this.fabricCanvas.add(rect);
+        } else if (backgroundStyle === 'radial') {
+            const radialGradient = new fabric.Gradient({
+                type: 'radial',
+                coords: {
+                    x1: this.fabricCanvas.width * 0.5,
+                    y1: this.fabricCanvas.height * 0.35,
+                    r1: 10,
+                    x2: this.fabricCanvas.width * 0.5,
+                    y2: this.fabricCanvas.height * 0.5,
+                    r2: this.fabricCanvas.height * 0.7
+                },
+                colorStops: [
+                    { offset: 0, color: this.lightenColor(templateConfig.accentColor, 0.7) },
+                    { offset: 0.55, color: templateConfig.backgroundColor },
+                    { offset: 1, color: this.lightenColor(templateConfig.primaryColor, 0.8) }
+                ]
+            });
+
+            const rect = new fabric.Rect({
+                left: 0,
+                top: 0,
+                width: this.fabricCanvas.width,
+                height: this.fabricCanvas.height,
+                fill: radialGradient,
+                selectable: false
+            });
+
             this.fabricCanvas.add(rect);
         }
         
@@ -878,17 +908,30 @@ class AdvancedImageGenerator {
      * 添加装饰元素
      */
     async addDecorations(templateConfig, options) {
+        const decorationLevel = options.decorationLevel || 'normal';
+        if (decorationLevel === 'none') {
+            return;
+        }
+
+        const topBarHeight = decorationLevel === 'minimal' ? 4 : 8;
+        const topBarOpacity = decorationLevel === 'minimal' ? 0.65 : 1;
+
         // 添加顶部装饰条
         const topBar = new fabric.Rect({
             left: 0,
             top: 0,
             width: this.fabricCanvas.width,
-            height: 8,
+            height: topBarHeight,
             fill: templateConfig.primaryColor,
+            opacity: topBarOpacity,
             selectable: false
         });
         this.fabricCanvas.add(topBar);
-        
+
+        if (decorationLevel === 'minimal') {
+            return;
+        }
+
         // 添加角落装饰
         const cornerSize = 60;
         const corner = new fabric.Circle({
@@ -896,10 +939,22 @@ class AdvancedImageGenerator {
             top: 20,
             radius: cornerSize / 2,
             fill: templateConfig.accentColor,
-            opacity: 0.1,
+            opacity: decorationLevel === 'rich' ? 0.16 : 0.1,
             selectable: false
         });
         this.fabricCanvas.add(corner);
+
+        if (decorationLevel === 'rich') {
+            const bottomDecoration = new fabric.Circle({
+                left: 30,
+                top: this.fabricCanvas.height - 90,
+                radius: 35,
+                fill: templateConfig.primaryColor,
+                opacity: 0.08,
+                selectable: false
+            });
+            this.fabricCanvas.add(bottomDecoration);
+        }
     }
 
     /**

@@ -125,22 +125,23 @@ class VisualGenerator {
             
             // 获取模板配置
             const templateConfig = this.cardTemplates[template.id] || this.cardTemplates['xiaohongshu-lifestyle'];
+            const styleProfile = this.getStyleProfile(options.imageStyle);
             
             // 清空画布
             this.clearCanvas();
             
             // 绘制背景
-            await this.drawBackground(templateConfig);
+            await this.drawBackground(templateConfig, styleProfile);
             
             // 绘制内容
-            await this.drawContent(content, templateConfig, tone, customTags, options);
+            await this.drawContent(content, templateConfig, tone, customTags, options, styleProfile);
             
             // 绘制装饰元素
-            await this.drawDecorations(templateConfig, template);
+            await this.drawDecorations(templateConfig, template, styleProfile);
             
             // 添加水印
             if (options.addWatermark !== false) {
-                await this.drawWatermark();
+                await this.drawWatermark(styleProfile);
             }
             
             // 转换为图片
@@ -157,6 +158,80 @@ class VisualGenerator {
     }
 
     /**
+     * 根据图片风格返回渲染配置
+     */
+    getStyleProfile(imageStyle = 'illustration') {
+        const profiles = {
+            realistic: {
+                key: 'realistic',
+                backgroundMode: 'soft',
+                textureNoise: 2,
+                contentPanelOpacity: 0.9,
+                titlePanelOpacityStart: 0.92,
+                titlePanelOpacityEnd: 0.84,
+                titleWeight: 600,
+                bodyFontSize: 17,
+                lineHeight: 27,
+                tagMode: 'outline',
+                decorationLevel: 'subtle',
+                topBarHeight: 5,
+                iconSize: 20,
+                watermarkOpacity: 0.08
+            },
+            illustration: {
+                key: 'illustration',
+                backgroundMode: 'vivid',
+                textureNoise: 10,
+                contentPanelOpacity: 0.8,
+                titlePanelOpacityStart: 0.9,
+                titlePanelOpacityEnd: 0.75,
+                titleWeight: 700,
+                bodyFontSize: 18,
+                lineHeight: 28,
+                tagMode: 'filled',
+                decorationLevel: 'rich',
+                topBarHeight: 8,
+                iconSize: 24,
+                watermarkOpacity: 0.1
+            },
+            minimalist: {
+                key: 'minimalist',
+                backgroundMode: 'minimal',
+                textureNoise: 0,
+                contentPanelOpacity: 0.96,
+                titlePanelOpacityStart: 0.96,
+                titlePanelOpacityEnd: 0.92,
+                titleWeight: 600,
+                bodyFontSize: 16,
+                lineHeight: 30,
+                tagMode: 'outline',
+                decorationLevel: 'none',
+                topBarHeight: 3,
+                iconSize: 18,
+                watermarkOpacity: 0.06
+            },
+            artistic: {
+                key: 'artistic',
+                backgroundMode: 'artistic',
+                textureNoise: 6,
+                contentPanelOpacity: 0.76,
+                titlePanelOpacityStart: 0.86,
+                titlePanelOpacityEnd: 0.72,
+                titleWeight: 700,
+                bodyFontSize: 18,
+                lineHeight: 29,
+                tagMode: 'filled',
+                decorationLevel: 'rich',
+                topBarHeight: 10,
+                iconSize: 26,
+                watermarkOpacity: 0.12
+            }
+        };
+
+        return profiles[imageStyle] || profiles.illustration;
+    }
+
+    /**
      * 清空画布
      */
     clearCanvas() {
@@ -166,15 +241,19 @@ class VisualGenerator {
     /**
      * 绘制背景
      */
-    async drawBackground(templateConfig) {
+    async drawBackground(templateConfig, styleProfile) {
         const { background } = templateConfig;
-        
-        if (background.startsWith('linear-gradient')) {
+
+        if (styleProfile.backgroundMode === 'minimal') {
+            const gradient = this.ctx.createLinearGradient(0, 0, 0, 960);
+            gradient.addColorStop(0, '#F8FAFC');
+            gradient.addColorStop(1, '#EEF2F7');
+            this.ctx.fillStyle = gradient;
+        } else if (background.startsWith('linear-gradient')) {
             // 解析渐变
             const gradientMatch = background.match(/linear-gradient\(([^)]+)\)/);
             if (gradientMatch) {
                 const gradientParams = gradientMatch[1].split(',').map(s => s.trim());
-                const angle = gradientParams[0];
                 const colors = gradientParams.slice(1);
                 
                 // 创建渐变
@@ -190,21 +269,47 @@ class VisualGenerator {
         }
         
         this.ctx.fillRect(0, 0, 540, 960);
-        
+
+        if (styleProfile.backgroundMode === 'artistic') {
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.22;
+            this.ctx.fillStyle = templateConfig.accentColor;
+            this.ctx.beginPath();
+            this.ctx.arc(430, 170, 140, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            this.ctx.fillStyle = templateConfig.primaryColor;
+            this.ctx.beginPath();
+            this.ctx.arc(110, 780, 180, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+        } else if (styleProfile.backgroundMode === 'soft') {
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.26;
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.fillRect(0, 0, 540, 960);
+            this.ctx.restore();
+        }
+
         // 添加纹理效果
-        await this.addBackgroundTexture(templateConfig);
+        await this.addBackgroundTexture(templateConfig, styleProfile);
     }
 
     /**
      * 添加背景纹理
      */
-    async addBackgroundTexture(templateConfig) {
+    async addBackgroundTexture(templateConfig, styleProfile) {
+        const intensity = styleProfile.textureNoise || 0;
+        if (intensity <= 0) {
+            return;
+        }
+
         // 添加微妙的噪点纹理
         const imageData = this.ctx.getImageData(0, 0, 540, 960);
         const data = imageData.data;
         
         for (let i = 0; i < data.length; i += 4) {
-            const noise = (Math.random() - 0.5) * 10;
+            const noise = (Math.random() - 0.5) * intensity;
             data[i] = Math.max(0, Math.min(255, data[i] + noise));     // R
             data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise)); // G
             data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise)); // B
@@ -216,7 +321,7 @@ class VisualGenerator {
     /**
      * 绘制内容
      */
-    async drawContent(content, templateConfig, tone, customTags, options) {
+    async drawContent(content, templateConfig, tone, customTags, options, styleProfile) {
         const { textColor, primaryColor, secondaryColor } = templateConfig;
         
         // 设置文本样式
@@ -225,37 +330,37 @@ class VisualGenerator {
         this.ctx.textBaseline = 'top';
         
         // 绘制标题区域
-        await this.drawTitle(content, templateConfig, tone);
+        await this.drawTitle(content, templateConfig, tone, styleProfile);
         
         // 绘制主要内容
-        await this.drawMainContent(content, templateConfig);
+        await this.drawMainContent(content, templateConfig, styleProfile);
         
         // 绘制标签
         if (customTags.length > 0) {
-            await this.drawTags(customTags, templateConfig);
+            await this.drawTags(customTags, templateConfig, styleProfile);
         }
         
         // 绘制装饰图标
-        await this.drawIcons(templateConfig, tone);
+        await this.drawIcons(templateConfig, tone, styleProfile);
     }
 
     /**
      * 绘制标题
      */
-    async drawTitle(content, templateConfig, tone) {
+    async drawTitle(content, templateConfig, tone, styleProfile) {
         const { primaryColor, textColor } = templateConfig;
         
         // 提取标题（取前20个字符）
         const title = content.split('\n')[0].substring(0, 20) + (content.length > 20 ? '...' : '');
         
         // 设置标题样式
-        this.ctx.font = this.fontLoaded ? `bold 32px ${this.systemFontFamily}` : 'bold 32px sans-serif';
+        this.ctx.font = this.fontLoaded ? `${styleProfile.titleWeight} 32px ${this.systemFontFamily}` : 'bold 32px sans-serif';
         this.ctx.fillStyle = textColor;
         
         // 绘制标题背景
         const titleBg = this.ctx.createLinearGradient(0, 80, 540, 120);
-        titleBg.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-        titleBg.addColorStop(1, 'rgba(255, 255, 255, 0.7)');
+        titleBg.addColorStop(0, `rgba(255, 255, 255, ${styleProfile.titlePanelOpacityStart})`);
+        titleBg.addColorStop(1, `rgba(255, 255, 255, ${styleProfile.titlePanelOpacityEnd})`);
         
         this.ctx.fillStyle = titleBg;
         this.roundRect(40, 80, 460, 60, 15);
@@ -273,16 +378,16 @@ class VisualGenerator {
     /**
      * 绘制主要内容
      */
-    async drawMainContent(content, templateConfig) {
+    async drawMainContent(content, templateConfig, styleProfile) {
         const { textColor, secondaryColor } = templateConfig;
         
         // 内容区域背景
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        this.ctx.fillStyle = `rgba(255, 255, 255, ${styleProfile.contentPanelOpacity})`;
         this.roundRect(40, 180, 460, 600, 20);
         this.ctx.fill();
         
         // 设置内容文字样式
-        this.ctx.font = this.fontLoaded ? `18px ${this.systemFontFamily}` : '18px sans-serif';
+        this.ctx.font = this.fontLoaded ? `${styleProfile.bodyFontSize}px ${this.systemFontFamily}` : '18px sans-serif';
         this.ctx.fillStyle = textColor;
         
         // 分段绘制内容
@@ -293,14 +398,14 @@ class VisualGenerator {
             if (y > 750) return; // 防止超出边界
             
             this.ctx.fillText(line, 60, y);
-            y += 28;
+            y += styleProfile.lineHeight;
         });
     }
 
     /**
      * 绘制标签
      */
-    async drawTags(tags, templateConfig) {
+    async drawTags(tags, templateConfig, styleProfile) {
         const { primaryColor, secondaryColor } = templateConfig;
         
         let x = 60;
@@ -316,12 +421,23 @@ class VisualGenerator {
             }
             
             // 绘制标签背景
-            this.ctx.fillStyle = primaryColor;
-            this.roundRect(x, y, tagWidth, 25, 12);
-            this.ctx.fill();
+            if (styleProfile.tagMode === 'outline') {
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                this.roundRect(x, y, tagWidth, 25, 12);
+                this.ctx.fill();
+
+                this.ctx.strokeStyle = primaryColor;
+                this.ctx.lineWidth = 1.5;
+                this.roundRect(x, y, tagWidth, 25, 12);
+                this.ctx.stroke();
+            } else {
+                this.ctx.fillStyle = primaryColor;
+                this.roundRect(x, y, tagWidth, 25, 12);
+                this.ctx.fill();
+            }
             
             // 绘制标签文字
-            this.ctx.fillStyle = 'white';
+            this.ctx.fillStyle = styleProfile.tagMode === 'outline' ? primaryColor : 'white';
             this.ctx.font = this.fontLoaded ? `14px ${this.systemFontFamily}` : '14px sans-serif';
             this.ctx.fillText(`#${tag}`, x + 10, y + 6);
             
@@ -332,18 +448,25 @@ class VisualGenerator {
     /**
      * 绘制装饰元素
      */
-    async drawDecorations(templateConfig, template) {
+    async drawDecorations(templateConfig, template, styleProfile) {
         const { primaryColor, accentColor } = templateConfig;
         
         // 绘制顶部装饰
         this.ctx.fillStyle = primaryColor;
-        this.ctx.fillRect(0, 0, 540, 8);
+        this.ctx.fillRect(0, 0, 540, styleProfile.topBarHeight);
+
+        if (styleProfile.decorationLevel === 'none') {
+            return;
+        }
         
         // 绘制角落装饰
+        this.ctx.save();
+        this.ctx.globalAlpha = styleProfile.decorationLevel === 'subtle' ? 0.45 : 1;
         this.drawCornerDecorations(templateConfig);
         
         // 绘制模板特定装饰
         this.drawTemplateSpecificDecorations(template, templateConfig);
+        this.ctx.restore();
     }
 
     /**
@@ -439,8 +562,8 @@ class VisualGenerator {
     /**
      * 绘制水印
      */
-    async drawWatermark() {
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    async drawWatermark(styleProfile) {
+        this.ctx.fillStyle = `rgba(0, 0, 0, ${styleProfile.watermarkOpacity})`;
         this.ctx.font = this.fontLoaded ? `12px ${this.systemFontFamily}` : '12px sans-serif';
         this.ctx.textAlign = 'right';
         this.ctx.fillText('Created with AI Generator', 520, 940);
@@ -538,7 +661,11 @@ class VisualGenerator {
     /**
      * 绘制图标
      */
-    async drawIcons(templateConfig, tone) {
+    async drawIcons(templateConfig, tone, styleProfile) {
+        if (styleProfile.decorationLevel === 'none') {
+            return;
+        }
+
         // 根据口吻添加相应的图标装饰
         const iconMap = {
             friendly: '😊',
@@ -552,7 +679,7 @@ class VisualGenerator {
         const icon = iconMap[tone] || '✨';
         
         // 绘制表情符号（简化版本，实际项目中可以使用图片）
-        this.ctx.font = '24px serif';
+        this.ctx.font = `${styleProfile.iconSize}px serif`;
         this.ctx.fillText(icon, 450, 150);
     }
 

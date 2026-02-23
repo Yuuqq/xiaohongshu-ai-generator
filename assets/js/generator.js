@@ -421,11 +421,46 @@ ${sectionTitle ? `小节标题：${sectionTitle}` : ''}
     }
 
     /**
+     * 将图片风格映射为本地生成器参数
+     */
+    getLocalStyleOptions(imageStyle = 'illustration') {
+        const styleMap = {
+            realistic: {
+                backgroundStyle: 'solid',
+                backgroundPattern: false,
+                decorationLevel: 'minimal',
+                addWatermark: true
+            },
+            illustration: {
+                backgroundStyle: 'gradient',
+                backgroundPattern: true,
+                decorationLevel: 'rich',
+                addWatermark: true
+            },
+            minimalist: {
+                backgroundStyle: 'solid',
+                backgroundPattern: false,
+                decorationLevel: 'none',
+                addWatermark: true
+            },
+            artistic: {
+                backgroundStyle: 'radial',
+                backgroundPattern: true,
+                decorationLevel: 'rich',
+                addWatermark: true
+            }
+        };
+
+        return styleMap[imageStyle] || styleMap.illustration;
+    }
+
+    /**
      * 使用高级生成器生成图片
      */
     async generateWithAdvancedGenerator(prompt, settings) {
         const results = [];
         const template = settings.template || window.templateManager?.getSelectedTemplate() || { id: 'xiaohongshu-lifestyle' };
+        const styleOptions = this.getLocalStyleOptions(settings.imageStyle);
 
         // 如果有内容分析结果，使用分段内容
         if (window.previewSystem?.stepData?.contentAnalysis?.sections?.length > 0) {
@@ -442,9 +477,11 @@ ${sectionTitle ? `小节标题：${sectionTitle}` : ''}
                         {
                             aspectRatio: settings.aspectRatio,
                             quality: settings.quality,
-                            backgroundStyle: 'gradient',
-                            backgroundPattern: true,
-                            addWatermark: true
+                            imageStyle: settings.imageStyle,
+                            backgroundStyle: styleOptions.backgroundStyle,
+                            backgroundPattern: styleOptions.backgroundPattern,
+                            decorationLevel: styleOptions.decorationLevel,
+                            addWatermark: styleOptions.addWatermark
                         }
                     );
 
@@ -484,8 +521,11 @@ ${sectionTitle ? `小节标题：${sectionTitle}` : ''}
                         {
                             aspectRatio: settings.aspectRatio,
                             quality: settings.quality,
-                            backgroundStyle: 'gradient',
-                            addWatermark: true
+                            imageStyle: settings.imageStyle,
+                            backgroundStyle: styleOptions.backgroundStyle,
+                            backgroundPattern: styleOptions.backgroundPattern,
+                            decorationLevel: styleOptions.decorationLevel,
+                            addWatermark: styleOptions.addWatermark
                         }
                     );
 
