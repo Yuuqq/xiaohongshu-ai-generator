@@ -110,8 +110,81 @@ class VisualGenerator {
                 textColor: '#1C3A1C',
                 accentColor: '#228B22',
                 layout: 'travel'
+            },
+            'xiaohongshu-product': {
+                background: 'linear-gradient(135deg, #FFECD2, #FDD9A0, #F8B981)',
+                primaryColor: '#EA580C',
+                secondaryColor: '#FFF4E6',
+                textColor: '#7C2D12',
+                accentColor: '#FB923C',
+                layout: 'product'
+            },
+            'xiaohongshu-fitness': {
+                background: 'linear-gradient(135deg, #84FAB0, #8FD3F4, #A7E9AF)',
+                primaryColor: '#059669',
+                secondaryColor: '#ECFDF5',
+                textColor: '#064E3B',
+                accentColor: '#10B981',
+                layout: 'fitness'
+            },
+            'xiaohongshu-minimalist': {
+                background: 'linear-gradient(135deg, #F8FAFC, #EEF2F7, #E2E8F0)',
+                primaryColor: '#334155',
+                secondaryColor: '#F8FAFC',
+                textColor: '#0F172A',
+                accentColor: '#94A3B8',
+                layout: 'minimalist'
+            },
+            'xiaohongshu-tech-premium': {
+                background: 'linear-gradient(135deg, #EDE9FE, #DDE8FF, #D4E6FF)',
+                primaryColor: '#6366F1',
+                secondaryColor: '#F5F3FF',
+                textColor: '#312E81',
+                accentColor: '#8B5CF6',
+                layout: 'tech'
+            },
+            'xiaohongshu-data-showcase': {
+                background: 'linear-gradient(135deg, #EEF2FF, #E0E7FF, #D6DEFF)',
+                primaryColor: '#4F46E5',
+                secondaryColor: '#EEF2FF',
+                textColor: '#1E1B4B',
+                accentColor: '#6366F1',
+                layout: 'data'
+            },
+            'xiaohongshu-tutorial-card': {
+                background: 'linear-gradient(135deg, #E6FFFB, #D9FDF4, #CCFBF1)',
+                primaryColor: '#0F766E',
+                secondaryColor: '#F0FDFA',
+                textColor: '#134E4A',
+                accentColor: '#14B8A6',
+                layout: 'tutorial'
             }
         };
+    }
+
+    /**
+     * 获取模板配置（优先精确ID，其次按分类回退）
+     */
+    getTemplateConfig(template) {
+        const templateId = template?.id;
+        if (templateId && this.cardTemplates[templateId]) {
+            return this.cardTemplates[templateId];
+        }
+
+        const categoryFallback = {
+            lifestyle: 'xiaohongshu-lifestyle',
+            education: 'xiaohongshu-knowledge',
+            fashion: 'xiaohongshu-fashion',
+            food: 'xiaohongshu-food',
+            travel: 'xiaohongshu-travel',
+            shopping: 'xiaohongshu-product',
+            fitness: 'xiaohongshu-fitness',
+            minimalist: 'xiaohongshu-minimalist',
+            technology: 'xiaohongshu-tech-premium'
+        };
+
+        const fallbackId = categoryFallback[template?.category] || 'xiaohongshu-lifestyle';
+        return this.cardTemplates[fallbackId] || this.cardTemplates['xiaohongshu-lifestyle'];
     }
 
     /**
@@ -126,7 +199,7 @@ class VisualGenerator {
             this.isGenerating = true;
             
             // 获取模板配置
-            const templateConfig = this.cardTemplates[template.id] || this.cardTemplates['xiaohongshu-lifestyle'];
+            const templateConfig = this.getTemplateConfig(template);
             const styleProfile = this.getStyleProfile(options.imageStyle);
             
             // 清空画布
@@ -500,7 +573,7 @@ class VisualGenerator {
         const { primaryColor } = templateConfig;
         
         // 根据模板类型添加特定装饰
-        switch (template.category) {
+        switch (template?.category) {
             case 'lifestyle':
                 this.drawLifestyleDecorations(templateConfig);
                 break;
@@ -509,6 +582,21 @@ class VisualGenerator {
                 break;
             case 'fashion':
                 this.drawFashionDecorations(templateConfig);
+                break;
+            case 'travel':
+                this.drawTravelDecorations(templateConfig);
+                break;
+            case 'shopping':
+                this.drawShoppingDecorations(templateConfig);
+                break;
+            case 'fitness':
+                this.drawFitnessDecorations(templateConfig);
+                break;
+            case 'minimalist':
+                this.drawMinimalistDecorations(templateConfig);
+                break;
+            case 'technology':
+                this.drawTechnologyDecorations(templateConfig);
                 break;
             default:
                 this.drawDefaultDecorations(templateConfig);
@@ -549,6 +637,73 @@ class VisualGenerator {
         this.ctx.fillStyle = primaryColor;
         this.drawStar(480, 50, 15);
         this.drawStar(60, 900, 12);
+    }
+
+    /**
+     * 绘制旅行类装饰
+     */
+    drawTravelDecorations(templateConfig) {
+        const { primaryColor } = templateConfig;
+        this.ctx.fillStyle = primaryColor;
+        this.ctx.beginPath();
+        this.ctx.arc(485, 52, 12, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.beginPath();
+        this.ctx.arc(485, 52, 5, 0, Math.PI * 2);
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.fill();
+    }
+
+    /**
+     * 绘制购物类装饰
+     */
+    drawShoppingDecorations(templateConfig) {
+        const { primaryColor } = templateConfig;
+        this.ctx.strokeStyle = primaryColor;
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(468, 36, 24, 20);
+        this.ctx.beginPath();
+        this.ctx.arc(474, 36, 3, Math.PI, 2 * Math.PI);
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.arc(486, 36, 3, Math.PI, 2 * Math.PI);
+        this.ctx.stroke();
+    }
+
+    /**
+     * 绘制健身类装饰
+     */
+    drawFitnessDecorations(templateConfig) {
+        const { primaryColor } = templateConfig;
+        this.ctx.fillStyle = primaryColor;
+        this.ctx.fillRect(468, 46, 8, 8);
+        this.ctx.fillRect(484, 46, 8, 8);
+        this.ctx.fillRect(476, 44, 8, 12);
+    }
+
+    /**
+     * 绘制极简类装饰
+     */
+    drawMinimalistDecorations(templateConfig) {
+        const { primaryColor } = templateConfig;
+        this.ctx.strokeStyle = primaryColor;
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(468, 50);
+        this.ctx.lineTo(492, 50);
+        this.ctx.stroke();
+    }
+
+    /**
+     * 绘制科技类装饰
+     */
+    drawTechnologyDecorations(templateConfig) {
+        const { primaryColor } = templateConfig;
+        this.ctx.strokeStyle = primaryColor;
+        this.ctx.lineWidth = 1.5;
+        for (let i = 0; i < 3; i++) {
+            this.ctx.strokeRect(468 + i * 8, 40 + i * 4, 18 - i * 4, 18 - i * 4);
+        }
     }
 
     /**

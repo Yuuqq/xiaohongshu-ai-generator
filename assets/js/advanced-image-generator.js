@@ -446,7 +446,55 @@ class AdvancedImageGenerator {
         
         // 添加装饰性背景图案
         if (options.backgroundPattern) {
-            await this.addBackgroundPattern(templateConfig);
+            await this.addBackgroundPattern(templateConfig, options);
+        }
+    }
+
+    /**
+     * 添加背景纹理图案
+     */
+    async addBackgroundPattern(templateConfig, options = {}) {
+        const width = this.fabricCanvas.width;
+        const height = this.fabricCanvas.height;
+        const imageStyle = options.imageStyle || 'illustration';
+
+        if (imageStyle === 'artistic') {
+            const anchors = [
+                [0.16, 0.2, 0.12],
+                [0.82, 0.24, 0.16],
+                [0.22, 0.78, 0.18],
+                [0.74, 0.72, 0.14]
+            ];
+
+            anchors.forEach((item, index) => {
+                const [px, py, ratio] = item;
+                const circle = new fabric.Circle({
+                    left: width * px,
+                    top: height * py,
+                    radius: Math.round(Math.min(width, height) * ratio),
+                    fill: index % 2 === 0
+                        ? this.lightenColor(templateConfig.accentColor, 0.55)
+                        : this.lightenColor(templateConfig.primaryColor, 0.65),
+                    opacity: 0.09 + index * 0.01,
+                    selectable: false
+                });
+                this.fabricCanvas.add(circle);
+            });
+
+            return;
+        }
+
+        const spacing = imageStyle === 'minimalist' ? 160 : 110;
+        const patternColor = this.lightenColor(templateConfig.accentColor, 0.42);
+
+        for (let x = -height; x < width + height; x += spacing) {
+            const line = new fabric.Line([x, 0, x + height, height], {
+                stroke: patternColor,
+                strokeWidth: imageStyle === 'realistic' ? 1 : 2,
+                opacity: imageStyle === 'realistic' ? 0.03 : 0.07,
+                selectable: false
+            });
+            this.fabricCanvas.add(line);
         }
     }
 
