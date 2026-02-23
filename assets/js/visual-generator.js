@@ -5,6 +5,8 @@
 
 class VisualGenerator {
     constructor() {
+        this.baseWidth = 540;
+        this.baseHeight = 960;
         this.canvas = null;
         this.ctx = null;
         this.isGenerating = false;
@@ -57,10 +59,10 @@ class VisualGenerator {
         
         // 设置高DPI支持
         const dpr = window.devicePixelRatio || 1;
-        this.canvas.style.width = '540px';
-        this.canvas.style.height = '960px';
-        this.canvas.width = 540 * dpr;
-        this.canvas.height = 960 * dpr;
+        this.canvas.style.width = `${this.baseWidth}px`;
+        this.canvas.style.height = `${this.baseHeight}px`;
+        this.canvas.width = this.baseWidth * dpr;
+        this.canvas.height = this.baseHeight * dpr;
         this.ctx.scale(dpr, dpr);
     }
 
@@ -145,7 +147,7 @@ class VisualGenerator {
             }
             
             // 转换为图片
-            const imageData = await this.canvasToImageData(options.format || 'png');
+            const imageData = await this.canvasToImageData(options.format || 'png', options);
             
             return imageData;
             
@@ -235,7 +237,10 @@ class VisualGenerator {
      * 清空画布
      */
     clearCanvas() {
+        this.ctx.save();
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.restore();
     }
 
     /**
@@ -257,7 +262,7 @@ class VisualGenerator {
                 const colors = gradientParams.slice(1);
                 
                 // 创建渐变
-                const gradient = this.ctx.createLinearGradient(0, 0, 540, 960);
+                const gradient = this.ctx.createLinearGradient(0, 0, this.baseWidth, this.baseHeight);
                 colors.forEach((color, index) => {
                     gradient.addColorStop(index / (colors.length - 1), color);
                 });
@@ -268,7 +273,7 @@ class VisualGenerator {
             this.ctx.fillStyle = background;
         }
         
-        this.ctx.fillRect(0, 0, 540, 960);
+        this.ctx.fillRect(0, 0, this.baseWidth, this.baseHeight);
 
         if (styleProfile.backgroundMode === 'artistic') {
             this.ctx.save();
@@ -305,7 +310,7 @@ class VisualGenerator {
         }
 
         // 添加微妙的噪点纹理
-        const imageData = this.ctx.getImageData(0, 0, 540, 960);
+        const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
         const data = imageData.data;
         
         for (let i = 0; i < data.length; i += 4) {
@@ -453,7 +458,7 @@ class VisualGenerator {
         
         // 绘制顶部装饰
         this.ctx.fillStyle = primaryColor;
-        this.ctx.fillRect(0, 0, 540, styleProfile.topBarHeight);
+        this.ctx.fillRect(0, 0, this.baseWidth, styleProfile.topBarHeight);
 
         if (styleProfile.decorationLevel === 'none') {
             return;
@@ -484,7 +489,7 @@ class VisualGenerator {
         
         // 右下角
         this.ctx.beginPath();
-        this.ctx.arc(540, 960, 30, Math.PI, 3 * Math.PI / 2);
+        this.ctx.arc(this.baseWidth, this.baseHeight, 30, Math.PI, 3 * Math.PI / 2);
         this.ctx.fill();
     }
 
@@ -566,7 +571,7 @@ class VisualGenerator {
         this.ctx.fillStyle = `rgba(0, 0, 0, ${styleProfile.watermarkOpacity})`;
         this.ctx.font = this.fontLoaded ? `12px ${this.systemFontFamily}` : '12px sans-serif';
         this.ctx.textAlign = 'right';
-        this.ctx.fillText('Created with AI Generator', 520, 940);
+        this.ctx.fillText('Created with AI Generator', this.baseWidth - 20, this.baseHeight - 20);
         this.ctx.textAlign = 'left'; // 重置对齐方式
     }
 
@@ -686,18 +691,84 @@ class VisualGenerator {
     /**
      * 转换画布为图片数据
      */
-    async canvasToImageData(format = 'png') {
+    getOutputDimensions(aspectRatio = '9:16', quality = 'high') {
+        const presets = {
+            standard: {
+                '9:16': { width: 540, height: 960 },
+                '1:1': { width: 540, height: 540 },
+                '16:9': { width: 960, height: 540 },
+                '4:5': { width: 720, height: 900 }
+            },
+            high: {
+                '9:16': { width: 1080, height: 1920 },
+                '1:1': { width: 1080, height: 1080 },
+                '16:9': { width: 1920, height: 1080 },
+                '4:5': { width: 1080, height: 1350 }
+            },
+            ultra: {
+                '9:16': { width: 1440, height: 2560 },
+                '1:1': { width: 1440, height: 1440 },
+                '16:9': { width: 2560, height: 1440 },
+                '4:5': { width: 1440, height: 1800 }
+            }
+        };
+
+        const qualitySet = presets[quality] || presets.high;
+        return qualitySet[aspectRatio] || qualitySet['9:16'];
+    }
+
+    async canvasToImageData(format = 'png', options = {}) {
+        const aspectRatio = options.aspectRatio || '9:16';
+        const quality = options.quality || 'high';
+        const outputSize = this.getOutputDimensions(aspectRatio, quality);
+        const outputCanvas = document.createElement('canvas');
+        const outputCtx = outputCanvas.getContext('2d');
+
+        outputCanvas.width = outputSize.width;
+        outputCanvas.height = outputSize.height;
+
+        const srcWidth = this.canvas.width;
+        const srcHeight = this.canvas.height;
+        const coverScale = Math.max(outputSize.width / srcWidth, outputSize.height / srcHeight);
+        const coverWidth = srcWidth * coverScale;
+        const coverHeight = srcHeight * coverScale;
+        const coverX = (outputSize.width - coverWidth) / 2;
+        const coverY = (outputSize.height - coverHeight) / 2;
+
+        outputCtx.fillStyle = '#F5F5F7';
+        outputCtx.fillRect(0, 0, outputSize.width, outputSize.height);
+        outputCtx.globalAlpha = 0.32;
+        outputCtx.drawImage(this.canvas, coverX, coverY, coverWidth, coverHeight);
+        outputCtx.globalAlpha = 1;
+
+        const containScale = Math.min(outputSize.width / srcWidth, outputSize.height / srcHeight);
+        const renderWidth = srcWidth * containScale;
+        const renderHeight = srcHeight * containScale;
+        const renderX = (outputSize.width - renderWidth) / 2;
+        const renderY = (outputSize.height - renderHeight) / 2;
+
+        outputCtx.drawImage(this.canvas, renderX, renderY, renderWidth, renderHeight);
+
+        const mimeMap = {
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            webp: 'image/webp',
+            png: 'image/png'
+        };
+        const mimeType = mimeMap[format] || 'image/png';
+        const qualityValue = quality === 'ultra' ? 1 : quality === 'high' ? 0.92 : 0.82;
+
         return new Promise((resolve) => {
-            this.canvas.toBlob((blob) => {
+            outputCanvas.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
                 resolve({
                     blob,
                     url,
-                    width: 540,
-                    height: 960,
+                    width: outputSize.width,
+                    height: outputSize.height,
                     format
                 });
-            }, `image/${format}`, format === 'jpg' ? 0.9 : 1.0);
+            }, mimeType, qualityValue);
         });
     }
 
