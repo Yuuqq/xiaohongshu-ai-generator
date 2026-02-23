@@ -191,6 +191,9 @@ class ImageGenerator {
                     return await this.generateWithGeminiImageAPI(prompt, settings);
                 } catch (apiError) {
                     DEBUG.warn('Gemini 图片 API 生成失败，回退到本地高级生成器:', apiError);
+                    if (window.uiManager) {
+                        window.uiManager.showToast('Gemini 图片服务暂时不可用，已自动切换本地生成', 'warning', 5000);
+                    }
                 }
             }
 
