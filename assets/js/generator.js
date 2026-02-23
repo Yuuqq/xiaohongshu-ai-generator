@@ -71,7 +71,7 @@ class ImageGenerator {
             this.validateInput(content);
             
             // 获取当前模板
-            const template = window.templateManager?.getSelectedTemplate();
+            const template = options.template || window.templateManager?.getSelectedTemplate();
             if (!template) {
                 throw new Error('请先选择一个模板');
             }
@@ -208,7 +208,7 @@ class ImageGenerator {
      */
     async generateWithAdvancedGenerator(prompt, settings) {
         const results = [];
-        const template = window.templateManager?.getSelectedTemplate() || { id: 'xiaohongshu-lifestyle' };
+        const template = settings.template || window.templateManager?.getSelectedTemplate() || { id: 'xiaohongshu-lifestyle' };
 
         // 如果有内容分析结果，使用分段内容
         if (window.previewSystem?.stepData?.contentAnalysis?.sections?.length > 0) {

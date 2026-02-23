@@ -156,8 +156,145 @@ class AdvancedImageGenerator {
                 titleSize: 26,
                 bodySize: 15,
                 spacing: 16
+            },
+            'xiaohongshu-knowledge': {
+                name: '小红书知识风',
+                backgroundColor: '#eef6ff',
+                primaryColor: '#2563eb',
+                secondaryColor: '#3b82f6',
+                accentColor: '#60a5fa',
+                textColor: '#1e293b',
+                fontFamily: 'Arial, sans-serif',
+                layout: 'vertical',
+                padding: 36,
+                titleSize: 30,
+                bodySize: 16,
+                spacing: 18
+            },
+            'xiaohongshu-travel': {
+                name: '小红书旅行风',
+                backgroundColor: '#ecfeff',
+                primaryColor: '#0891b2',
+                secondaryColor: '#06b6d4',
+                accentColor: '#22d3ee',
+                textColor: '#164e63',
+                fontFamily: 'Arial, sans-serif',
+                layout: 'vertical',
+                padding: 38,
+                titleSize: 30,
+                bodySize: 16,
+                spacing: 20
+            },
+            'xiaohongshu-product': {
+                name: '小红书种草风',
+                backgroundColor: '#fff7ed',
+                primaryColor: '#ea580c',
+                secondaryColor: '#fb923c',
+                accentColor: '#fdba74',
+                textColor: '#7c2d12',
+                fontFamily: 'Arial, sans-serif',
+                layout: 'vertical',
+                padding: 38,
+                titleSize: 30,
+                bodySize: 16,
+                spacing: 19
+            },
+            'xiaohongshu-fitness': {
+                name: '小红书健身风',
+                backgroundColor: '#ecfdf5',
+                primaryColor: '#059669',
+                secondaryColor: '#10b981',
+                accentColor: '#34d399',
+                textColor: '#064e3b',
+                fontFamily: 'Arial, sans-serif',
+                layout: 'vertical',
+                padding: 34,
+                titleSize: 30,
+                bodySize: 16,
+                spacing: 18
+            },
+            'xiaohongshu-minimalist': {
+                name: '小红书极简风',
+                backgroundColor: '#f8fafc',
+                primaryColor: '#334155',
+                secondaryColor: '#64748b',
+                accentColor: '#94a3b8',
+                textColor: '#0f172a',
+                fontFamily: 'Helvetica, Arial, sans-serif',
+                layout: 'vertical',
+                padding: 42,
+                titleSize: 28,
+                bodySize: 15,
+                spacing: 20
+            },
+            'xiaohongshu-tech-premium': {
+                name: '技术精美卡片',
+                backgroundColor: '#f5f3ff',
+                primaryColor: '#7c3aed',
+                secondaryColor: '#6366f1',
+                accentColor: '#a78bfa',
+                textColor: '#312e81',
+                fontFamily: 'Helvetica, Arial, sans-serif',
+                layout: 'vertical',
+                padding: 32,
+                titleSize: 30,
+                bodySize: 15,
+                spacing: 17
+            },
+            'xiaohongshu-data-showcase': {
+                name: '数据展示卡片',
+                backgroundColor: '#eef2ff',
+                primaryColor: '#4f46e5',
+                secondaryColor: '#6366f1',
+                accentColor: '#818cf8',
+                textColor: '#1e1b4b',
+                fontFamily: 'Helvetica, Arial, sans-serif',
+                layout: 'vertical',
+                padding: 32,
+                titleSize: 29,
+                bodySize: 15,
+                spacing: 17
+            },
+            'xiaohongshu-tutorial-card': {
+                name: '教程攻略卡片',
+                backgroundColor: '#f0fdfa',
+                primaryColor: '#0f766e',
+                secondaryColor: '#14b8a6',
+                accentColor: '#2dd4bf',
+                textColor: '#134e4a',
+                fontFamily: 'Arial, sans-serif',
+                layout: 'vertical',
+                padding: 36,
+                titleSize: 30,
+                bodySize: 16,
+                spacing: 18
             }
         };
+    }
+
+    /**
+     * 获取模板配置（优先使用精确ID，其次按类别回退）
+     */
+    getTemplateConfig(template) {
+        const templateId = template?.id;
+        if (templateId && this.templates[templateId]) {
+            return this.templates[templateId];
+        }
+
+        const categoryFallback = {
+            lifestyle: 'xiaohongshu-lifestyle',
+            education: 'xiaohongshu-knowledge',
+            fashion: 'xiaohongshu-fashion',
+            food: 'xiaohongshu-food',
+            travel: 'xiaohongshu-travel',
+            shopping: 'xiaohongshu-product',
+            fitness: 'xiaohongshu-fitness',
+            minimalist: 'xiaohongshu-minimalist',
+            technology: 'xiaohongshu-tech-premium'
+        };
+
+        const fallbackId = categoryFallback[template?.category] || 'xiaohongshu-lifestyle';
+        return this.templates[fallbackId] || this.templates['xiaohongshu-lifestyle'];
     }
 
     /**
@@ -172,7 +309,7 @@ class AdvancedImageGenerator {
             this.isGenerating = true;
             
             // 获取模板配置
-            const templateConfig = this.templates[template.id] || this.templates['xiaohongshu-lifestyle'];
+            const templateConfig = this.getTemplateConfig(template);
             
             // 设置画布尺寸
             this.setCanvasSize(options.aspectRatio || '9:16');

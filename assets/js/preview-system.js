@@ -17,6 +17,7 @@ class PreviewSystem {
         };
         this.previewUpdateTimeout = null;
         this._initialized = false;
+        this._step2EventsBound = false;
         this.init();
     }
 
@@ -1343,23 +1344,25 @@ class PreviewSystem {
      * 绑定步骤2的事件
      */
     bindStep2Events() {
+        if (this._step2EventsBound) {
+            this.validateStep2();
+            return;
+        }
+
         DEBUG.log('绑定步骤2事件...');
+        this._step2EventsBound = true;
 
         // 绑定口吻选择
         const toneGrid = document.getElementById('toneGrid');
         if (toneGrid) {
             DEBUG.log('找到口吻网格，绑定事件');
-            // 移除之前的事件监听器（如果有）
-            toneGrid.replaceWith(toneGrid.cloneNode(true));
-            const newToneGrid = document.getElementById('toneGrid');
-
-            newToneGrid.addEventListener('click', (e) => {
+            toneGrid.addEventListener('click', (e) => {
                 const toneCard = e.target.closest('.tone-card');
                 if (toneCard) {
                     DEBUG.log('点击口吻卡片:', toneCard.dataset.tone);
 
                     // 移除之前的选中状态
-                    newToneGrid.querySelectorAll('.tone-card').forEach(card => {
+                    toneGrid.querySelectorAll('.tone-card').forEach(card => {
                         card.classList.remove('selected');
                     });
 
@@ -1381,44 +1384,11 @@ class PreviewSystem {
         const templateGrid = document.getElementById('templateGrid');
         if (templateGrid) {
             DEBUG.log('找到模板网格，绑定事件');
-            // 移除之前的事件监听器（如果有）
-            templateGrid.replaceWith(templateGrid.cloneNode(true));
-            const newTemplateGrid = document.getElementById('templateGrid');
+            if (window.templateManager && typeof window.templateManager.selectTemplate === 'function') {
+                // 确保模板已渲染，并复用 templateManager 自身的点击处理
+                window.templateManager.templateGrid = templateGrid;
 
-            newTemplateGrid.addEventListener('click', (e) => {
-                const templateCard = e.target.closest('.template-card');
-                if (templateCard) {
-                    const templateId = templateCard.dataset.templateId;
-                    DEBUG.log('点击模板卡片:', templateId);
-
-                    // 移除之前的选中状态
-                    newTemplateGrid.querySelectorAll('.template-card').forEach(card => {
-                        card.classList.remove('selected');
-                    });
-
-                    // 添加新的选中状态
-                    templateCard.classList.add('selected');
-
-                    // 查找模板数据
-                    let template = null;
-                    if (window.templateManager && window.templateManager.templates) {
-                        template = window.templateManager.templates.find(t => t.id === templateId);
-                    }
-
-                    if (template) {
-                        this.stepData.template = template;
-                        this.validateStep2();
-                        this.updatePreview();
-                        DEBUG.log('预览系统：选择模板:', template.name);
-                    } else {
-                        DEBUG.warn('未找到模板数据:', templateId);
-                    }
-                }
-            });
-
-            // 确保模板已渲染
-            if (window.templateManager) {
-                if (!newTemplateGrid.children.length || newTemplateGrid.children.length === 0) {
+                if (!templateGrid.children.length || templateGrid.children.length === 0) {
                     DEBUG.log('模板网格为空，触发模板渲染');
                     const rendered = window.templateManager.forceRender();
                     if (!rendered) {
@@ -1427,6 +1397,23 @@ class PreviewSystem {
                         window.templateManager.forceRender();
                     }
                 }
+
+                // 同步当前已选模板，保证步骤2状态与生成器一致
+                this.stepData.template = window.templateManager.getSelectedTemplate() || this.stepData.template;
+                this.validateStep2();
+            } else {
+                // 后备逻辑：直接在预览系统中维护模板选择
+                templateGrid.addEventListener('click', (e) => {
+                    const templateCard = e.target.closest('.template-card');
+                    if (!templateCard) return;
+
+                    templateGrid.querySelectorAll('.template-card').forEach(card => {
+                        card.classList.remove('selected');
+                    });
+                    templateCard.classList.add('selected');
+                    this.validateStep2();
+                    this.updatePreview();
+                });
             }
         } else {
             DEBUG.warn('未找到模板网格元素');
