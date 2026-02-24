@@ -150,13 +150,20 @@ class ContentOptimizer {
             DEBUG.log('优化提示词:', optimizationPrompt);
 
             // 调用API进行优化
-            const optimizedContent = await this.callOptimizationAPI(optimizationPrompt);
+            const optimizationResult = await this.callOptimizationAPI(optimizationPrompt, {
+                originalContent,
+                tone,
+                template,
+                customTags,
+                options
+            });
+            const optimizedContent = optimizationResult.content;
 
             // 保存优化历史
             this.saveOptimizationHistory(originalContent, optimizedContent, tone, template);
 
             // 显示优化结果
-            this.displayOptimizationResult(optimizedContent);
+            this.displayOptimizationResult(optimizedContent, optimizationResult);
 
             return optimizedContent;
 
@@ -230,8 +237,13 @@ ${content}
     /**
      * 调用优化API
      */
-    async callOptimizationAPI(prompt) {
+    async callOptimizationAPI(prompt, context = {}) {
+        const allowLocalFallback = context.options?.allowLocalFallback !== false;
+
         if (!this.apiKey) {
+            if (allowLocalFallback) {
+                return this.runLocalFallbackOptimization(prompt, context, '未配置 API 密钥');
+            }
             throw new Error('请先配置API密钥');
         }
 
@@ -258,7 +270,11 @@ ${content}
                     }
 
                     this.updateOptimizationProgress(100, '优化完成！');
-                    return this.normalizeOptimizedText(optimizedContent);
+                    return {
+                        content: this.normalizeOptimizedText(optimizedContent),
+                        source: 'gemini',
+                        model
+                    };
                 } catch (modelError) {
                     lastError = modelError;
                     DEBUG.warn(`内容优化模型 ${model} 调用失败:`, modelError);
@@ -268,8 +284,130 @@ ${content}
             throw lastError || new Error('所有优化模型均不可用');
         } catch (error) {
             DEBUG.error('API调用失败:', error);
+            if (allowLocalFallback) {
+                return this.runLocalFallbackOptimization(prompt, context, error?.message || 'Gemini 服务暂时不可用');
+            }
             throw new Error('内容优化服务暂时不可用，请稍后重试');
         }
+    }
+
+    /**
+     * Gemini 不可用时的本地优化回退
+     */
+    async runLocalFallbackOptimization(prompt, context = {}, reason = '') {
+        this.updateOptimizationProgress(65, 'Gemini 优化暂不可用，切换本地优化...');
+        await new Promise(resolve => setTimeout(resolve, 250));
+
+        const localOptimized = this.generateFallbackOptimization(
+            context.originalContent || this.extractOriginalContentFromPrompt(prompt),
+            context.tone,
+            context.customTags || [],
+            context.options || {}
+        );
+
+        this.updateOptimizationProgress(100, '本地优化完成！');
+
+        return {
+            content: localOptimized,
+            source: 'local',
+            reason
+        };
+    }
+
+    /**
+     * 从提示词中提取原始内容（回退兜底）
+     */
+    extractOriginalContentFromPrompt(prompt) {
+        const contentMatch = prompt.match(/【原始内容】\n([\s\S]*?)\n\n【优化要求】/);
+        return contentMatch ? contentMatch[1].trim() : '';
+    }
+
+    /**
+     * 生成本地优化结果（无 API 回退）
+     */
+    generateFallbackOptimization(originalContent, tone, customTags = [], options = {}) {
+        const safeOriginal = (originalContent || '').trim();
+        if (!safeOriginal) {
+            return '这是一份已优化的内容草稿，请补充原始内容后重试。';
+        }
+
+        const tonePrefixMap = {
+            friendly: '姐妹们，今天把实用经验整理给大家👇',
+            professional: '以下是整理后的核心结论：',
+            playful: '来啦来啦，重点都帮你标好了✨',
+            concise: '直接上重点：',
+            elegant: '把这份感受和方法，认真写给你：',
+            trendy: '这波真的很能打，重点给你划好了：'
+        };
+
+        const toneSuffixMap = {
+            friendly: '有问题欢迎评论区交流，我们一起进步～',
+            professional: '以上内容可直接按步骤执行。',
+            playful: '看到这里记得点赞收藏，回头照着做就行～',
+            concise: '按上面执行即可。',
+            elegant: '愿你在日常里，也能持续收获确定感。',
+            trendy: '先收藏再实操，真的省事。'
+        };
+
+        let optimized = safeOriginal
+            .replace(/\r\n/g, '\n')
+            .replace(/[ \t]+/g, ' ')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+
+        if (options.optimizeStructure !== false) {
+            optimized = this.restructureFallbackText(optimized);
+        }
+
+        if (options.addEmojis !== false && tone !== 'professional' && tone !== 'concise') {
+            optimized = optimized
+                .replace(/(^|\n)([^#\n].{6,30})(?=\n|$)/g, '$1🔸$2')
+                .replace(/。/g, '。');
+        }
+
+        const prefix = tonePrefixMap[tone] || tonePrefixMap.friendly;
+        const suffix = toneSuffixMap[tone] || toneSuffixMap.friendly;
+        const tags = customTags
+            .map(tag => String(tag || '').trim().replace(/^#/, ''))
+            .filter(Boolean)
+            .slice(0, 6)
+            .map(tag => `#${tag}`);
+
+        const finalLines = [prefix, '', optimized, '', suffix];
+        if (tags.length > 0) {
+            finalLines.push('', tags.join(' '));
+        }
+
+        return finalLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    }
+
+    /**
+     * 本地优化的结构调整
+     */
+    restructureFallbackText(text) {
+        const segments = text
+            .split(/\n+/)
+            .map(s => s.trim())
+            .filter(Boolean);
+
+        if (segments.length >= 2) {
+            return segments.join('\n\n');
+        }
+
+        const sentences = text
+            .split(/(?<=[。！？])/)
+            .map(s => s.trim())
+            .filter(Boolean);
+
+        if (sentences.length <= 2) {
+            return text;
+        }
+
+        const grouped = [];
+        for (let i = 0; i < sentences.length; i += 2) {
+            grouped.push(sentences.slice(i, i + 2).join(''));
+        }
+        return grouped.join('\n\n');
     }
 
     /**
@@ -425,12 +563,16 @@ ${content}
     /**
      * 显示优化结果
      */
-    displayOptimizationResult(optimizedContent) {
+    displayOptimizationResult(optimizedContent, meta = {}) {
         const optimizedContentDiv = document.getElementById('optimizedContent');
         const contentActions = document.querySelector('.content-actions');
+        const fallbackNote = meta.source === 'local'
+            ? '<div style="margin-bottom:10px;padding:8px 10px;border-radius:8px;background:#fff7ed;color:#9a3412;font-size:13px;">Gemini 优化暂不可用，当前结果由本地优化生成。</div>'
+            : '';
 
         if (optimizedContentDiv) {
             optimizedContentDiv.innerHTML = `
+                ${fallbackNote}
                 <div class="optimized-text">${optimizedContent.replace(/\n/g, '<br>')}</div>
             `;
         }
@@ -446,7 +588,11 @@ ${content}
 
         // 显示成功提示
         if (window.uiManager) {
-            window.uiManager.showToast('内容优化完成！', 'success');
+            if (meta.source === 'local') {
+                window.uiManager.showToast('Gemini 暂不可用，已切换本地优化', 'warning', 5000);
+            } else {
+                window.uiManager.showToast('内容优化完成！', 'success');
+            }
         }
     }
 
