@@ -589,11 +589,12 @@ ${content}
         const fallbackNote = meta.source === 'local'
             ? '<div style="margin-bottom:10px;padding:8px 10px;border-radius:8px;background:#fff7ed;color:#9a3412;font-size:13px;">Gemini 优化暂不可用，当前结果由本地优化生成。</div>'
             : '';
+        const safeOptimized = Utils.escapeHtml(String(optimizedContent || '')).replace(/\n/g, '<br>');
 
         if (optimizedContentDiv) {
             optimizedContentDiv.innerHTML = `
                 ${fallbackNote}
-                <div class="optimized-text">${optimizedContent.replace(/\n/g, '<br>')}</div>
+                <div class="optimized-text">${safeOptimized}</div>
             `;
         }
 
@@ -622,10 +623,11 @@ ${content}
     showOptimizationError(message) {
         const optimizedContent = document.getElementById('optimizedContent');
         if (optimizedContent) {
+            const safeMessage = Utils.escapeHtml(String(message || ''));
             optimizedContent.innerHTML = `
                 <div class="optimization-error">
                     <span class="material-icons">error</span>
-                    <div class="error-message">${message}</div>
+                    <div class="error-message">${safeMessage}</div>
                     <button class="retry-button" onclick="window.contentOptimizer.retryOptimization()">
                         <span class="material-icons">refresh</span>
                         重试

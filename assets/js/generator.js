@@ -999,12 +999,13 @@ ${sectionTitle ? `小节标题：${sectionTitle}` : ''}
     createImageItem(image) {
         const item = document.createElement('div');
         item.className = 'image-item fade-in';
+        const safeTitle = Utils.escapeHtml(String(image.title || ''));
         
         item.innerHTML = `
-            <img src="${image.url}" alt="${image.title}" class="image-preview" loading="lazy">
+            <img src="${image.url}" alt="${safeTitle}" class="image-preview" loading="lazy">
             <div class="image-actions">
                 <div class="image-info">
-                    <div class="image-title">${image.title}</div>
+                    <div class="image-title">${safeTitle}</div>
                     <div class="image-meta">${Utils.formatFileSize(image.size)} • ${image.width}x${image.height}</div>
                 </div>
                 <button class="download-button" data-image-id="${image.id}" title="下载图片">

@@ -594,9 +594,10 @@ class PreviewSystem {
             const contentPreview = document.getElementById('contentPreview');
             if (contentPreview) {
                 if (this.stepData.content.trim()) {
+                    const safeContent = Utils.escapeHtml(String(this.stepData.content || '')).replace(/\n/g, '<br>');
                     contentPreview.innerHTML = `
                         <div class="preview-content">
-                            ${this.stepData.content.replace(/\n/g, '<br>')}
+                            ${safeContent}
                         </div>
                     `;
                 } else {
@@ -618,14 +619,17 @@ class PreviewSystem {
             return;
         }
 
-        tagsContainer.innerHTML = this.stepData.customTags.map(tag => `
-            <div class="tag-item">
-                <span class="tag-text">${tag}</span>
-                <button class="tag-remove" data-tag="${tag}">
-                    <span class="material-icons" style="font-size: 16px;">close</span>
-                </button>
-            </div>
-        `).join('');
+        tagsContainer.innerHTML = this.stepData.customTags.map(tag => {
+            const safeTag = Utils.escapeHtml(String(tag || ''));
+            return `
+                <div class="tag-item">
+                    <span class="tag-text">${safeTag}</span>
+                    <button class="tag-remove" data-tag="${safeTag}">
+                        <span class="material-icons" style="font-size: 16px;">close</span>
+                    </button>
+                </div>
+            `;
+        }).join('');
 
         // 绑定删除事件
         tagsContainer.querySelectorAll('.tag-remove').forEach(btn => {
@@ -664,8 +668,9 @@ class PreviewSystem {
         // 显示原始内容
         const originalContentElement = document.getElementById('originalContent');
         if (originalContentElement && this.stepData.content) {
+            const safeOriginal = Utils.escapeHtml(String(this.stepData.content || '')).replace(/\n/g, '<br>');
             originalContentElement.innerHTML = `
-                <div class="content-text">${this.stepData.content.replace(/\n/g, '<br>')}</div>
+                <div class="content-text">${safeOriginal}</div>
                 <div class="content-meta">
                     <span class="content-length">${this.stepData.content.length} 字符</span>
                     <span class="content-words">${this.stepData.content.split(/\s+/).length} 词</span>
@@ -754,6 +759,8 @@ class PreviewSystem {
             return;
         }
 
+        const escapeText = (value) => Utils.escapeHtml(value == null ? '' : String(value));
+
         // 显示分析面板
         contentAnalysisPanel.style.display = 'block';
 
@@ -774,7 +781,7 @@ class PreviewSystem {
                 </div>
             </div>
             <div class="analysis-description">
-                <p><strong>分析结果:</strong> ${analysis.analysis}</p>
+                <p><strong>分析结果:</strong> ${escapeText(analysis.analysis)}</p>
             </div>
         `;
 
@@ -786,14 +793,17 @@ class PreviewSystem {
             `;
 
             analysis.sections.forEach((section, index) => {
+                const sectionTitle = escapeText(section.title);
+                const sectionContent = String(section.content || '');
+                const previewText = escapeText(sectionContent.substring(0, 100));
                 resultHTML += `
                     <div class="section-item">
                         <div class="section-header">
                             <span class="section-number">${index + 1}</span>
-                            <span class="section-title">${section.title}</span>
+                            <span class="section-title">${sectionTitle}</span>
                             <span class="section-length">${section.length}字符</span>
                         </div>
-                        <div class="section-preview">${section.content.substring(0, 100)}${section.content.length > 100 ? '...' : ''}</div>
+                        <div class="section-preview">${previewText}${sectionContent.length > 100 ? '...' : ''}</div>
                     </div>
                 `;
             });
@@ -812,7 +822,7 @@ class PreviewSystem {
             `;
 
             analysis.suggestions.forEach(suggestion => {
-                resultHTML += `<li>${suggestion}</li>`;
+                resultHTML += `<li>${escapeText(suggestion)}</li>`;
             });
 
             resultHTML += `
@@ -1251,9 +1261,10 @@ class PreviewSystem {
         item.className = 'preview-image-item fade-in';
         item.dataset.previewIndex = index;
 
+        const safeTitle = Utils.escapeHtml(String(image.title || ''));
         item.innerHTML = `
             <div class="preview-image-wrapper">
-                <img src="${image.url}" alt="${image.title}" class="preview-image" loading="lazy">
+                <img src="${image.url}" alt="${safeTitle}" class="preview-image" loading="lazy">
                 <div class="preview-image-overlay">
                     <button class="preview-download-btn" data-image-id="${image.id}" title="下载图片">
                         <span class="material-icons">download</span>
@@ -1261,7 +1272,7 @@ class PreviewSystem {
                 </div>
             </div>
             <div class="preview-image-info">
-                <div class="preview-image-title">${image.title}</div>
+                <div class="preview-image-title">${safeTitle}</div>
                 <div class="preview-image-meta">${image.width}x${image.height}</div>
             </div>
         `;
@@ -1347,10 +1358,10 @@ class PreviewSystem {
 
         imagesGrid.innerHTML = images.map(image => `
             <div class="image-item" data-image-id="${image.id}">
-                <img src="${image.url}" alt="${image.title}" class="image-preview" loading="lazy">
+                <img src="${image.url}" alt="${Utils.escapeHtml(String(image.title || ''))}" class="image-preview" loading="lazy">
                 <div class="image-actions">
                     <div class="image-info">
-                        <div class="image-title">${image.title}</div>
+                        <div class="image-title">${Utils.escapeHtml(String(image.title || ''))}</div>
                         <div class="image-meta">${this.formatFileSize(image.size)} • ${image.width}x${image.height}</div>
                     </div>
                     <button class="download-button download-single-btn" data-image-id="${image.id}" title="下载此图片">
@@ -1607,10 +1618,12 @@ class PreviewSystem {
      * 重新开始
      */
     startOver() {
+        const selectedTemplate = window.templateManager?.getSelectedTemplate?.() || null;
         this.stepData = {
             content: '',
             tone: '',
-            template: null,
+            // 保持与模板管理器当前选择一致，避免“UI已选中但无法下一步”
+            template: selectedTemplate,
             customTags: [],
             optimizedContent: '',
             generationSettings: {}

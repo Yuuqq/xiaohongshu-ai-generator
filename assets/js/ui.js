@@ -165,16 +165,26 @@ class UIManager {
         toast.className = `toast ${type}`;
         
         const icon = this.getToastIcon(type);
-        toast.innerHTML = `
-            <span class="toast-icon material-icons">${icon}</span>
-            <span class="toast-message">${message}</span>
-            <button class="toast-close">
-                <span class="material-icons">close</span>
-            </button>
-        `;
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'toast-icon material-icons';
+        iconSpan.textContent = icon;
+
+        const messageSpan = document.createElement('span');
+        messageSpan.className = 'toast-message';
+        messageSpan.textContent = message == null ? '' : String(message);
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'toast-close';
+        const closeIcon = document.createElement('span');
+        closeIcon.className = 'material-icons';
+        closeIcon.textContent = 'close';
+        closeBtn.appendChild(closeIcon);
+
+        toast.appendChild(iconSpan);
+        toast.appendChild(messageSpan);
+        toast.appendChild(closeBtn);
 
         // 添加关闭事件
-        const closeBtn = toast.querySelector('.toast-close');
         closeBtn.addEventListener('click', () => {
             this.removeToast(toast);
         });
