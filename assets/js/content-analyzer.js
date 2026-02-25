@@ -10,7 +10,7 @@ class ContentAnalyzer {
             titles: [
                 /^#{1,6}\s+(.+)$/gm,           // Markdown标题
                 /^(.+)\n[=\-]{3,}$/gm,        // 下划线标题
-                /^\d+[\.\)]\s*(.+)$/gm,       // 数字标题 (1. 2.)
+                /^\d+[\.\)）]\s*(.+)$/gm,       // 数字标题 (1. 2.)
                 /^[一二三四五六七八九十]+[\.\、]\s*(.+)$/gm, // 中文数字标题
                 /^[（\(][一二三四五六七八九十\d]+[）\)]\s*(.+)$/gm // 括号标题
             ],
@@ -25,7 +25,7 @@ class ContentAnalyzer {
             // 列表模式
             lists: [
                 /^[\*\-\+]\s+(.+)$/gm,        // 无序列表
-                /^\d+[\.\)]\s+(.+)$/gm,       // 有序列表
+                /^\d+[\.\)）]\s+(.+)$/gm,       // 有序列表
                 /^[•·]\s+(.+)$/gm             // 项目符号列表
             ]
         };
@@ -106,15 +106,48 @@ class ContentAnalyzer {
      */
     extractByTitles(content) {
         const sections = [];
-        const titlePattern = /^(#{1,6}\s+.+|\d+[\.\)]\s*.+|[一二三四五六七八九十]+[\.\、]\s*.+)$/gm;
-        
-        let lastIndex = 0;
+        const titlePattern = /^(#{1,6}\s+.+|\d+[\.\)）]\s*.+|[一二三四五六七八九十]+[\.\、]\s*.+)$/gm;
+
+        // 先收集所有标题匹配，避免在 exec 循环中二次 exec/回退 lastIndex 造成死循环
+        const matches = [];
         let match;
-        
         while ((match = titlePattern.exec(content)) !== null) {
-            // 添加前一段内容
-            if (match.index > lastIndex) {
-                const prevContent = content.substring(lastIndex, match.index).trim();
+            // 理论上不会出现空匹配，但这里做一次保护，避免 lastIndex 不推进导致卡死
+            if (!match[0]) {
+                titlePattern.lastIndex += 1;
+                continue;
+            }
+            matches.push({ index: match.index, raw: match[0] });
+
+            // 极端情况下的保护：避免异常内容导致无限增长
+            if (matches.length > 1000) {
+                DEBUG.warn('标题匹配数量异常，已中断解析以避免性能问题');
+                break;
+            }
+        }
+
+        if (matches.length === 0) {
+            return sections;
+        }
+
+        // 纯数字序号/中文序号（1. 2. 3.）在小红书内容里更常见于“列表项”而非“章节标题”。
+        // 如果全部匹配都像列表项，则不要走“按标题分段”，交给 lists/paragraphs 更稳。
+        const isMarkdownHeading = (raw) => /^\s*#{1,6}\s+/.test(String(raw || ''));
+        const isListLikeTitle = (raw) => /^\s*(?:\d{1,2}[\.\)）]|[一二三四五六七八九十]+[\.\、])\s*\S+/.test(String(raw || ''));
+        const markdownCount = matches.reduce((sum, m) => sum + (isMarkdownHeading(m.raw) ? 1 : 0), 0);
+        const listLikeCount = matches.reduce((sum, m) => sum + (isListLikeTitle(m.raw) ? 1 : 0), 0);
+        if (markdownCount === 0 && listLikeCount === matches.length) {
+            return sections;
+        }
+
+        let lastIndex = 0;
+        for (let i = 0; i < matches.length; i++) {
+            const current = matches[i];
+            const endIndex = matches[i + 1] ? matches[i + 1].index : content.length;
+
+            // 添加前一段内容（标题前的正文）
+            if (current.index > lastIndex) {
+                const prevContent = content.substring(lastIndex, current.index).trim();
                 if (prevContent.length > this.minSectionLength) {
                     sections.push({
                         type: 'content',
@@ -124,25 +157,20 @@ class ContentAnalyzer {
                     });
                 }
             }
-            
-            // 查找下一个标题的位置
-            const nextMatch = titlePattern.exec(content);
-            const endIndex = nextMatch ? nextMatch.index : content.length;
-            titlePattern.lastIndex = match.index; // 重置位置
-            
-            const sectionContent = content.substring(match.index, endIndex).trim();
+
+            const sectionContent = content.substring(current.index, endIndex).trim();
             if (sectionContent.length > this.minSectionLength) {
                 sections.push({
                     type: 'titled',
-                    title: match[0].replace(/^#+\s*|\d+[\.\)]\s*|[一二三四五六七八九十]+[\.\、]\s*/g, ''),
+                    title: current.raw.replace(/^#+\s*|\d+[\.\)）]\s*|[一二三四五六七八九十]+[\.\、]\s*/g, ''),
                     content: sectionContent,
                     length: sectionContent.length
                 });
             }
-            
+
             lastIndex = endIndex;
         }
-        
+
         return sections;
     }
 
@@ -197,7 +225,20 @@ class ContentAnalyzer {
      * 按段落提取
      */
     extractByParagraphs(content) {
-        const paragraphs = content.split(/\n\s*\n/).filter(p => p.trim().length > this.minSectionLength);
+        const isHashtagOnly = (text) => {
+            const stripped = String(text || '')
+                .replace(/#([A-Za-z0-9_\u4e00-\u9fff]+)/g, '')
+                .replace(/[^\S\n]+/g, ' ')
+                .replace(/\n/g, '')
+                .trim();
+            return stripped.length === 0;
+        };
+
+        const paragraphs = content
+            .split(/\n\s*\n/)
+            .map(p => String(p || '').trim())
+            .filter(p => p.length > this.minSectionLength)
+            .filter(p => !isHashtagOnly(p));
         
         return paragraphs.map((paragraph, index) => ({
             type: 'paragraph',
@@ -264,11 +305,53 @@ class ContentAnalyzer {
      * 生成标题
      */
     generateTitle(content) {
-        const firstSentence = content.split(/[。！？]/)[0].trim();
-        if (firstSentence.length > 20) {
-            return firstSentence.substring(0, 20) + '...';
+        const text = String(content || '').replace(/\r\n/g, '\n').trim();
+        if (!text) return '内容片段';
+
+        const lines = text
+            .split('\n')
+            .map(line => String(line || '').trim())
+            .filter(Boolean);
+
+        const pickLine = () => {
+            if (lines.length === 0) return '';
+
+            for (const line of lines) {
+                // 纯标签行不适合作标题
+                if (/^#([A-Za-z0-9_\u4e00-\u9fff]+)/.test(line)) {
+                    continue;
+                }
+                // 常见元信息不适合作标题
+                if (/^(适合|适用|适用人群|人群|对象|场景|适用于)\s*[:：]/.test(line)) {
+                    continue;
+                }
+                return line;
+            }
+
+            return lines[0];
+        };
+
+        let title = pickLine();
+        title = title
+            .replace(/^\s*(?:标题|Title)\s*[:：]\s*/i, '')
+            .replace(/^#{1,6}\s+/, '')
+            .replace(/^[（\(][一二三四五六七八九十\d]+[）\)]\s*/, '')
+            .replace(/^\d{1,2}[\.\)、\)）]\s*/, '')
+            .replace(/^[一二三四五六七八九十]+[\.\、]\s*/, '')
+            .replace(/^(?:✅|☑️|✔️|👉|💡|🔥|⭐️|⭐|🌟|🟢|🔸|🔹|🔻|🔺|▶︎|▶|→|[-*•·])\s*/, '')
+            .replace(/[：:]$/, '')
+            .trim();
+
+        // 兜底：如果首行清洗后为空，用“第一句话”兜底
+        if (!title) {
+            title = text.split(/[。！？\n]/)[0].trim();
         }
-        return firstSentence || '内容片段';
+
+        if (!title) return '内容片段';
+        if (title.length > 20) {
+            return title.substring(0, 20) + '...';
+        }
+        return title;
     }
 
     /**

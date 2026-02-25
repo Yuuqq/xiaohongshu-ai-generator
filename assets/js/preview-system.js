@@ -15,6 +15,10 @@ class PreviewSystem {
             optimizedContent: '',
             generationSettings: {}
         };
+
+        // Step4 preview state
+        this.previewImages = [];
+        this.previewIndex = 0;
         this.previewUpdateTimeout = null;
         this._initialized = false;
         this._step2EventsBound = false;
@@ -220,6 +224,8 @@ class PreviewSystem {
         const generatePreviewBtn = document.getElementById('generatePreviewBtn');
         const generateAllBtn = document.getElementById('generateAllBtn');
         const refreshPreviewBtn = document.getElementById('refreshPreviewBtn');
+        const previewCard = document.getElementById('livePreviewCard');
+        const previewImagesGrid = document.getElementById('previewImagesGrid');
 
         if (generatePreviewBtn) {
             generatePreviewBtn.addEventListener('click', () => this.generateLivePreview());
@@ -233,6 +239,36 @@ class PreviewSystem {
             refreshPreviewBtn.addEventListener('click', () => this.generateLivePreview());
         }
 
+        // 预览卡片：上一张/下一张（多图）
+        if (previewCard) {
+            previewCard.addEventListener('click', (event) => {
+                const prevBtn = event.target.closest?.('.preview-nav-prev');
+                const nextBtn = event.target.closest?.('.preview-nav-next');
+                if (prevBtn) {
+                    this.shiftPreviewIndex(-1);
+                    return;
+                }
+                if (nextBtn) {
+                    this.shiftPreviewIndex(1);
+                }
+            });
+        }
+
+        // 网格点击：切换大预览
+        if (previewImagesGrid) {
+            previewImagesGrid.addEventListener('click', (event) => {
+                if (event.target.closest?.('.preview-download-btn')) {
+                    return;
+                }
+                const item = event.target.closest?.('.preview-image-item');
+                if (!item) return;
+                const idx = Number(item.dataset.previewIndex);
+                if (Number.isFinite(idx)) {
+                    this.setPreviewIndex(idx);
+                }
+            });
+        }
+
         // 生成设置变化时更新预览
         const settingsInputs = ['imageCount', 'imageStyle', 'aspectRatio', 'quality'];
         settingsInputs.forEach(id => {
@@ -244,6 +280,65 @@ class PreviewSystem {
                 });
             }
         });
+    }
+
+    setPreviewImages(images = [], index = 0) {
+        this.previewImages = Array.isArray(images) ? images : [];
+        this.previewIndex = 0;
+        this.setPreviewIndex(index);
+    }
+
+    setPreviewIndex(index = 0) {
+        const total = this.previewImages.length;
+        if (total === 0) {
+            this.previewIndex = 0;
+            this.renderLivePreviewCard(null);
+            return;
+        }
+
+        const nextIndex = Math.max(0, Math.min(total - 1, Number(index) || 0));
+        this.previewIndex = nextIndex;
+        this.renderLivePreviewCard(this.previewImages[this.previewIndex]);
+    }
+
+    shiftPreviewIndex(delta = 0) {
+        const total = this.previewImages.length;
+        if (total <= 1) return;
+        const next = (this.previewIndex + (Number(delta) || 0) + total) % total;
+        this.setPreviewIndex(next);
+    }
+
+    renderLivePreviewCard(image) {
+        const previewCard = document.getElementById('livePreviewCard');
+        if (!previewCard) return;
+
+        if (!image) {
+            previewCard.classList.remove('has-image');
+            previewCard.innerHTML = '<div class="preview-placeholder">点击生成预览查看效果</div>';
+            return;
+        }
+
+        previewCard.classList.add('has-image');
+        const total = this.previewImages.length;
+        const showNav = total > 1;
+        const counter = showNav ? `${this.previewIndex + 1}/${total}` : '';
+
+        previewCard.innerHTML = `
+            <div class="preview-card-media">
+                <img src="${image.url}" alt="预览图片" class="preview-card-image" loading="lazy">
+            </div>
+            ${showNav ? `
+                <div class="preview-card-hud" aria-hidden="true">
+                    <button class="preview-nav-btn preview-nav-prev" title="上一张" type="button">
+                        <span class="material-icons">chevron_left</span>
+                    </button>
+                    <div class="preview-counter">${counter}</div>
+                    <button class="preview-nav-btn preview-nav-next" title="下一张" type="button">
+                        <span class="material-icons">chevron_right</span>
+                    </button>
+                </div>
+            ` : ''}
+        `;
     }
 
     /**
@@ -477,6 +572,20 @@ class PreviewSystem {
     }
 
     /**
+     * 验证步骤3
+     */
+    validateStep3() {
+        const nextBtn = document.getElementById('nextStep3');
+        const isValid = String(this.stepData.optimizedContent || '').trim().length > 0;
+
+        if (nextBtn) {
+            nextBtn.disabled = !isValid;
+        }
+
+        return isValid;
+    }
+
+    /**
      * 更新内容预览
      */
     updateContentPreview() {
@@ -587,6 +696,9 @@ class PreviewSystem {
         if (nextBtn) {
             nextBtn.disabled = true;
         }
+
+        // 如果已经有优化内容（例如返回到步骤3），同步按钮状态
+        this.validateStep3();
 
         DEBUG.log('步骤3初始化完成');
     }
@@ -867,6 +979,8 @@ class PreviewSystem {
             const previewCard = document.getElementById('livePreviewCard');
             const generateBtn = document.getElementById('generatePreviewBtn');
             const refreshBtn = document.getElementById('refreshPreviewBtn');
+            const previewImagesGrid = document.getElementById('previewImagesGrid');
+            const generatedImagesPreview = document.getElementById('generatedImagesPreview');
 
             // 显示加载状态
             if (previewCard) {
@@ -881,50 +995,108 @@ class PreviewSystem {
 
             // 获取生成设置
             this.stepData.generationSettings = {
-                imageCount: document.getElementById('imageCount')?.value || 3,
+                imageCount: parseInt(document.getElementById('imageCount')?.value) || 1,
                 imageStyle: document.getElementById('imageStyle')?.value || 'illustration',
                 aspectRatio: document.getElementById('aspectRatio')?.value || '9:16',
                 quality: document.getElementById('quality')?.value || 'high'
             };
 
-            // 生成预览卡片
             const contentToUse = this.stepData.optimizedContent || this.stepData.content;
-            const imageData = await window.visualGenerator.generateCard(
-                contentToUse,
-                this.stepData.template,
-                this.stepData.tone,
-                this.stepData.customTags,
-                this.stepData.generationSettings
-            );
+            const startTime = Date.now();
 
-            // 显示预览
-            if (previewCard) {
-                previewCard.classList.remove('loading');
-                previewCard.innerHTML = `
-                    <img src="${imageData.url}" alt="预览图片" style="width: 100%; height: auto; border-radius: 12px;">
-                `;
+            // 清空旧的生成结果，保证“生成数量”直观一致
+            if (window.app?.clearGeneratedImages) {
+                window.app.clearGeneratedImages();
+            } else if (window.app) {
+                window.app.generatedImages = [];
             }
 
-            // 将生成的图片添加到应用状态中，供第五步导出使用
-            if (window.app && imageData) {
+            let generatedImages = [];
+            // 优先使用 ImageGenerator 的本地 Canvas 渲染（可复用分段/数量逻辑）
+            if (window.imageGenerator?.generateWithVisualGenerator && window.imageGenerator?.processGenerationResults) {
+                const settings = {
+                    ...this.stepData.generationSettings,
+                    template: this.stepData.template,
+                    tone: this.stepData.tone,
+                    customTags: this.stepData.customTags,
+                    useGeminiApi: false,
+                    useVisualGenerator: true
+                };
+                const prompt = window.promptEngine?.generatePrompt(contentToUse, this.stepData.template, settings) ||
+                    `创建一个小红书风格的图片，内容：${contentToUse}`;
+
+                const rawResults = await window.imageGenerator.generateWithVisualGenerator(prompt, settings);
+                generatedImages = await window.imageGenerator.processGenerationResults(rawResults, contentToUse, this.stepData.template);
+            } else {
+                // 后备：仅生成 1 张
+                const imageData = await window.visualGenerator.generateCard(
+                    contentToUse,
+                    this.stepData.template,
+                    this.stepData.tone,
+                    this.stepData.customTags,
+                    this.stepData.generationSettings
+                );
+
+                const parsedMeta = window.visualGenerator?.parseContent
+                    ? window.visualGenerator.parseContent(contentToUse)
+                    : { title: '', body: '' };
+
                 const imageInfo = {
-                    id: `preview_${Date.now()}`,
+                    id: `preview_${Date.now()}_0`,
                     url: imageData.url,
                     blob: imageData.blob,
-                    title: `${this.stepData.template.name || '预览图片'}`,
+                    title: `${parsedMeta.title || this.stepData.template.name || '预览图片'}`,
                     template: this.stepData.template.name || '未知模板',
-                    content: (this.stepData.optimizedContent || this.stepData.content).substring(0, 50) + '...',
+                    content: (parsedMeta.body || contentToUse)
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                        .substring(0, 50) + '...',
                     width: imageData.width || 800,
                     height: imageData.height || 1200,
                     size: imageData.blob?.size || 0,
                     timestamp: new Date().toISOString()
                 };
 
-                // 清空之前的预览图片，只保留最新的
-                window.app.generatedImages = window.app.generatedImages.filter(img => !img.id.startsWith('preview_'));
-                window.app.addGeneratedImage(imageInfo);
+                if (window.app?.addGeneratedImage) {
+                    window.app.addGeneratedImage(imageInfo);
+                }
 
-                DEBUG.log('预览图片已添加到导出队列:', imageInfo);
+                generatedImages = [imageInfo];
+            }
+ 
+            // 显示预览（多图：可切换）
+            if (previewCard) {
+                previewCard.classList.remove('loading');
+            }
+            this.setPreviewImages(generatedImages, 0);
+
+            // 同步到网格视图（与“批量生成”一致）
+            if (previewImagesGrid) {
+                previewImagesGrid.innerHTML = '';
+                generatedImages.forEach((image, index) => {
+                    const imageItem = this.createPreviewImageItem(image, index);
+                    previewImagesGrid.appendChild(imageItem);
+                });
+            }
+
+            if (generatedImagesPreview) {
+                generatedImagesPreview.style.display = 'block';
+            }
+
+            // 更新统计信息
+            const generationTime = Math.round((Date.now() - startTime) / 1000);
+            const imageCountElement = document.getElementById('previewImageCount');
+            const generationTimeElement = document.getElementById('previewGenerationTime');
+            if (imageCountElement) {
+                imageCountElement.textContent = generatedImages.length;
+            }
+            if (generationTimeElement) {
+                generationTimeElement.textContent = generationTime;
+            }
+
+            // 多图时自动滚动到网格，避免用户误以为只有 1 张
+            if (generatedImages.length > 1 && generatedImagesPreview) {
+                generatedImagesPreview.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
 
             // 启用下一步按钮
@@ -944,7 +1116,7 @@ class PreviewSystem {
             }
 
             if (window.uiManager) {
-                window.uiManager.showToast('预览生成完成！', 'success');
+                window.uiManager.showToast(`预览生成完成：${generatedImages.length}张`, 'success');
             }
 
             DEBUG.log('实时预览生成完成');
@@ -997,6 +1169,13 @@ class PreviewSystem {
 
             DEBUG.log('批量生成设置:', this.stepData.generationSettings);
 
+            // 清空旧的生成结果，保证“生成数量”直观一致
+            if (window.app?.clearGeneratedImages) {
+                window.app.clearGeneratedImages();
+            } else if (window.app) {
+                window.app.generatedImages = [];
+            }
+
             // 记录开始时间
             const startTime = Date.now();
 
@@ -1027,6 +1206,9 @@ class PreviewSystem {
                 if (generatedImagesPreview) {
                     generatedImagesPreview.style.display = 'block';
                 }
+
+                // 同步大预览（多图可切换）
+                this.setPreviewImages(generatedImages, 0);
 
                 // 更新统计信息
                 const imageCountElement = document.getElementById('previewImageCount');
@@ -1067,6 +1249,7 @@ class PreviewSystem {
     createPreviewImageItem(image, index) {
         const item = document.createElement('div');
         item.className = 'preview-image-item fade-in';
+        item.dataset.previewIndex = index;
 
         item.innerHTML = `
             <div class="preview-image-wrapper">
@@ -1164,13 +1347,13 @@ class PreviewSystem {
 
         imagesGrid.innerHTML = images.map(image => `
             <div class="image-item" data-image-id="${image.id}">
-                <img src="${image.url}" alt="${image.title}" class="image-preview">
-                <div class="image-info">
-                    <div class="image-title">${image.title}</div>
-                    <div class="image-meta">${this.formatFileSize(image.size)} • ${image.width}x${image.height}</div>
-                </div>
+                <img src="${image.url}" alt="${image.title}" class="image-preview" loading="lazy">
                 <div class="image-actions">
-                    <button class="download-single-btn" data-image-id="${image.id}" title="下载此图片">
+                    <div class="image-info">
+                        <div class="image-title">${image.title}</div>
+                        <div class="image-meta">${this.formatFileSize(image.size)} • ${image.width}x${image.height}</div>
+                    </div>
+                    <button class="download-button download-single-btn" data-image-id="${image.id}" title="下载此图片">
                         <span class="material-icons">download</span>
                     </button>
                 </div>
@@ -1464,6 +1647,14 @@ class PreviewSystem {
      */
     setStepData(data) {
         this.stepData = { ...this.stepData, ...data };
+
+        if (!data || typeof data !== 'object') {
+            return;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(data, 'optimizedContent')) {
+            this.validateStep3();
+        }
     }
 }
 

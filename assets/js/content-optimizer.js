@@ -360,9 +360,29 @@ ${content}
         }
 
         if (options.addEmojis !== false && tone !== 'professional' && tone !== 'concise') {
+            const hasBulletPrefix = (text) => /^(?:✅|☑️|✔️|👉|💡|🔥|⭐️|⭐|🌟|🟢|🔸|🔹|🔻|🔺|▶︎|▶|→|[-*•·])/.test(text);
+            const hasNumericPrefix = (text) => /^(?:\d{1,2}|[一二三四五六七八九十]+)[\.\)、\)）]/.test(text);
+
             optimized = optimized
-                .replace(/(^|\n)([^#\n].{6,30})(?=\n|$)/g, '$1🔸$2')
-                .replace(/。/g, '。');
+                .split('\n')
+                .map((rawLine) => {
+                    const line = String(rawLine || '');
+                    const leadingSpacesMatch = line.match(/^\s*/);
+                    const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[0] : '';
+                    const contentPart = line.slice(leadingSpaces.length);
+                    const trimmed = contentPart.trim();
+
+                    if (!trimmed) return line;
+                    if (trimmed.startsWith('#')) return line;
+                    if (hasBulletPrefix(trimmed)) return line;
+                    if (hasNumericPrefix(trimmed)) return line;
+
+                    // 只对中等长度行加“🔸”，避免对极短/极长行造成噪音
+                    if (trimmed.length < 7 || trimmed.length > 31) return line;
+
+                    return `${leadingSpaces}🔸${contentPart}`;
+                })
+                .join('\n');
         }
 
         const prefix = tonePrefixMap[tone] || tonePrefixMap.friendly;

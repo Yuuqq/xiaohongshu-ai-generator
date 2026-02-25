@@ -2,3 +2,14 @@
 /material-icons-*.tgz
 /package/
 /nul
+
+# Node / local dev
+/node_modules/
+/package-lock.json
+/npm-debug.log*
+/yarn.lock
+/pnpm-lock.yaml
+
+# Local docs artifacts
+/docs/_local/
+/docs/screenshots/

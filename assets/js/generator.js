@@ -80,6 +80,14 @@ class ImageGenerator {
 
             // 获取生成设置
             const settings = this.getGenerationSettings(options);
+
+            // 未配置 API Key 时，自动切换到本地生成（高级生成器/模拟生成）
+            if (!this.apiKey && settings.useGeminiApi !== false) {
+                settings.useGeminiApi = false;
+                if (window.uiManager) {
+                    window.uiManager.showToast('未配置 API 密钥，已切换本地生成', 'warning', 4500);
+                }
+            }
             
             // 显示加载界面
             if (window.uiManager) {
@@ -149,10 +157,6 @@ class ImageGenerator {
         if (!validation.valid) {
             throw new Error(validation.message);
         }
-
-        if (!this.apiKey) {
-            throw new Error('请先在设置中配置API密钥');
-        }
     }
 
     /**
@@ -197,6 +201,11 @@ class ImageGenerator {
                 }
             }
 
+            // 本地视觉生成器（Canvas）：中文排版更稳定，优先于 Fabric 方案
+            if (window.visualGenerator && settings.useVisualGenerator !== false) {
+                return await this.generateWithVisualGenerator(prompt, settings);
+            }
+
             // 检查是否有高级图片生成器
             if (window.advancedImageGenerator && settings.useAdvancedGenerator !== false) {
                 return await this.generateWithAdvancedGenerator(prompt, settings);
@@ -226,17 +235,15 @@ class ImageGenerator {
         const tone = settings.tone || 'friendly';
         const sections = window.previewSystem?.stepData?.contentAnalysis?.sections || [];
 
-        const tasks = sections.length > 0
-            ? sections.slice(0, settings.imageCount).map((section, index) => ({
-                  content: section.content,
-                  title: section.title,
-                  index
-              }))
-            : Array.from({ length: settings.imageCount }, (_, index) => ({
-                  content: window.previewSystem?.stepData?.optimizedContent || window.previewSystem?.stepData?.content || prompt,
-                  title: '',
-                  index
-              }));
+        const fallbackContent = window.previewSystem?.stepData?.optimizedContent || window.previewSystem?.stepData?.content || prompt;
+        const tasks = Array.from({ length: settings.imageCount }, (_, index) => {
+            const section = sections[index];
+            return {
+                content: section?.content || fallbackContent,
+                title: section?.title || '',
+                index
+            };
+        });
 
         for (const task of tasks) {
             const imagePrompt = this.buildGeminiImagePrompt(prompt, task.content, template, tone, settings, task.index, task.title);
@@ -462,91 +469,321 @@ ${sectionTitle ? `小节标题：${sectionTitle}` : ''}
         const template = settings.template || window.templateManager?.getSelectedTemplate() || { id: 'xiaohongshu-lifestyle' };
         const styleOptions = this.getLocalStyleOptions(settings.imageStyle);
 
-        // 如果有内容分析结果，使用分段内容
-        if (window.previewSystem?.stepData?.contentAnalysis?.sections?.length > 0) {
-            const sections = window.previewSystem.stepData.contentAnalysis.sections;
+        const contentToUse = window.previewSystem?.stepData?.optimizedContent ||
+                           window.previewSystem?.stepData?.content ||
+                           prompt;
+        const sections = window.previewSystem?.stepData?.contentAnalysis?.sections || [];
 
-            for (let i = 0; i < Math.min(settings.imageCount, sections.length); i++) {
-                const section = sections[i];
-                const sectionContent = section.content;
+        for (let i = 0; i < settings.imageCount; i++) {
+            const section = sections[i];
+            const sectionContent = section?.content || contentToUse;
+            const sectionTitle = section?.title || '';
 
-                try {
-                    const imageData = await window.advancedImageGenerator.generateImage(
-                        sectionContent,
-                        template,
-                        {
-                            aspectRatio: settings.aspectRatio,
-                            quality: settings.quality,
-                            imageStyle: settings.imageStyle,
-                            backgroundStyle: styleOptions.backgroundStyle,
-                            backgroundPattern: styleOptions.backgroundPattern,
-                            decorationLevel: styleOptions.decorationLevel,
-                            addWatermark: styleOptions.addWatermark
-                        }
-                    );
-
-                    results.push({
-                        url: imageData.url,
-                        blob: imageData.blob,
-                        width: imageData.width,
-                        height: imageData.height,
-                        prompt: `${section.title}: ${sectionContent.substring(0, 100)}...`,
-                        sectionTitle: section.title,
-                        sectionIndex: i
-                    });
-
-                    // 添加进度更新
-                    if (window.uiManager) {
-                        const progress = Math.round(((i + 1) / settings.imageCount) * 70) + 10;
-                        window.uiManager.updateProgress(progress, `正在生成第 ${i + 1} 张图片...`);
+            try {
+                const imageData = await window.advancedImageGenerator.generateImage(
+                    sectionContent,
+                    template,
+                    {
+                        aspectRatio: settings.aspectRatio,
+                        quality: settings.quality,
+                        imageStyle: settings.imageStyle,
+                        backgroundStyle: styleOptions.backgroundStyle,
+                        backgroundPattern: styleOptions.backgroundPattern,
+                        decorationLevel: styleOptions.decorationLevel,
+                        addWatermark: styleOptions.addWatermark
                     }
+                );
 
-                } catch (error) {
-                    DEBUG.error(`生成第 ${i + 1} 张图片失败:`, error);
-                    // 如果高级生成失败，回退到模拟生成
-                    results.push(await this.generateMockImage(prompt, i + 1, settings));
+                results.push({
+                    url: imageData.url,
+                    blob: imageData.blob,
+                    width: imageData.width,
+                    height: imageData.height,
+                    prompt: sectionTitle ? `${sectionTitle}: ${sectionContent.substring(0, 100)}...` : prompt,
+                    sectionTitle,
+                    sectionIndex: section ? i : undefined,
+                    variation: i + 1
+                });
+
+                if (window.uiManager) {
+                    const progress = Math.round(((i + 1) / settings.imageCount) * 70) + 10;
+                    window.uiManager.updateProgress(progress, `正在生成第 ${i + 1} 张图片...`);
+                }
+
+            } catch (error) {
+                DEBUG.error(`生成第 ${i + 1} 张图片失败:`, error);
+                results.push(await this.generateMockImage(prompt, i + 1, settings));
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * 使用本地视觉生成器（Canvas）生成图片（更适配中文排版）
+     */
+    async generateWithVisualGenerator(prompt, settings) {
+        if (!window.visualGenerator) {
+            throw new Error('视觉生成器未初始化');
+        }
+
+        const results = [];
+        const template = settings.template || window.templateManager?.getSelectedTemplate() || { id: 'xiaohongshu-lifestyle', name: '默认模板', category: 'lifestyle' };
+        const tone = settings.tone || 'friendly';
+        const customTags = Array.isArray(settings.customTags)
+            ? settings.customTags
+            : (window.previewSystem?.stepData?.customTags || []);
+        const sections = window.previewSystem?.stepData?.contentAnalysis?.sections || [];
+        const fallbackContent = window.previewSystem?.stepData?.optimizedContent || window.previewSystem?.stepData?.content || prompt;
+
+        const cleanSectionTitle = (rawTitle) => {
+            let title = String(rawTitle || '').replace(/\r\n/g, '\n').trim();
+            if (!title) return '';
+
+            // 只取首行，避免段落标题带入换行
+            if (title.includes('\n')) {
+                title = title.split('\n')[0].trim();
+            }
+
+            title = title
+                .replace(/^(?:✅|☑️|✔️|👉|💡|🔥|⭐️|⭐|🌟|🟢|🔸|🔹|🔻|🔺|▶︎|▶|→|[-*•·])\s*/, '')
+                .replace(/^\s*(?:标题|Title)\s*[:：]\s*/i, '')
+                .replace(/\.\.\.$/, '')
+                .replace(/…$/, '')
+                .replace(/^#{1,6}\s+/, '')
+                .replace(/^[（\(][一二三四五六七八九十\d]+[）\)]\s*/, '')
+                .replace(/^\d{1,2}[\.\)、\)）]\s*/, '')
+                .replace(/^[一二三四五六七八九十]+[\.\、]\s*/, '')
+                .replace(/[：:]$/, '')
+                .trim();
+
+            return title;
+        };
+
+        const buildCleanContent = (rawText, fallbackTitle = '') => {
+            const safeRaw = String(rawText || '').replace(/\r\n/g, '\n').trim();
+            if (!safeRaw) return '';
+
+            const parsed = typeof window.visualGenerator.parseContent === 'function'
+                ? window.visualGenerator.parseContent(safeRaw)
+                : { title: '', kicker: '', body: safeRaw };
+
+            const title = String(parsed?.title || '').trim() || cleanSectionTitle(fallbackTitle);
+            const kicker = String(parsed?.kicker || '').trim();
+            const body = String(parsed?.body || '').trim();
+
+            // 单行内容时不强行拆标题/正文，避免出现“标题有了但正文空了”的尴尬
+            if (!body && safeRaw.split('\n').filter(l => l.trim()).length <= 1) {
+                return safeRaw;
+            }
+
+            const lines = [];
+            if (title) lines.push(`标题：${title}`);
+            if (kicker) lines.push(kicker);
+            if (body) {
+                if (lines.length > 0) lines.push('');
+                lines.push(body);
+            }
+            return lines.join('\n').trim();
+        };
+
+        const inheritedTags = (() => {
+            try {
+                if (typeof window.visualGenerator.extractHashtags === 'function') {
+                    return window.visualGenerator.extractHashtags(fallbackContent).tags || [];
+                }
+            } catch (error) {
+                DEBUG.warn('提取全局标签失败:', error);
+            }
+            return [];
+        })();
+
+        const combinedTags = [...customTags, ...inheritedTags];
+
+        const isHashtagOnlyContent = (text) => {
+            const raw = String(text || '').replace(/\r\n/g, '\n').trim();
+            if (!raw) return true;
+
+            if (typeof window.visualGenerator.extractHashtags === 'function') {
+                const extracted = window.visualGenerator.extractHashtags(raw);
+                const withoutTags = String(extracted?.text || '').replace(/\s+/g, '').trim();
+                const tags = Array.isArray(extracted?.tags) ? extracted.tags : [];
+                return tags.length > 0 && withoutTags.length === 0;
+            }
+
+            const stripped = raw
+                .replace(/#([A-Za-z0-9_\u4e00-\u9fff]+)/g, '')
+                .replace(/\s+/g, '')
+                .trim();
+            return stripped.length === 0 && /#/.test(raw);
+        };
+
+        const usableSections = Array.isArray(sections)
+            ? sections.filter(section => section?.content && !isHashtagOnlyContent(section.content))
+            : [];
+
+        const deriveTitleFromBody = (bodyText) => {
+            const firstLine = String(bodyText || '')
+                .replace(/\r\n/g, '\n')
+                .split('\n')
+                .map(l => l.trim())
+                .find(Boolean) || '';
+            return cleanSectionTitle(firstLine);
+        };
+
+        const buildContentWithHeader = (header, bodyText, maxLines = null) => {
+            const lines = [];
+            const headerTitle = cleanSectionTitle(header?.title) || String(header?.title || '').trim();
+            const headerKicker = String(header?.kicker || '').trim();
+
+            if (headerTitle) lines.push(`标题：${headerTitle}`);
+            if (headerKicker) lines.push(headerKicker);
+
+            let body = String(bodyText || '').replace(/\r\n/g, '\n').trim();
+            if (headerKicker && body.startsWith(headerKicker)) {
+                body = body.split('\n').slice(1).join('\n').trim();
+            }
+
+            if (typeof maxLines === 'number' && maxLines > 0 && body) {
+                const bodyLines = body.split('\n').map(l => l.trim()).filter(Boolean);
+                body = bodyLines.slice(0, maxLines).join('\n').trim();
+            }
+
+            if (body) {
+                if (lines.length > 0) lines.push('');
+                lines.push(body);
+            }
+
+            return lines.join('\n').trim();
+        };
+
+        const buildCoverSummaryBody = (sectionsToSummarize, maxLines = 6) => {
+            const collected = [];
+            const list = Array.isArray(sectionsToSummarize) ? sectionsToSummarize : [];
+
+            for (const section of list) {
+                const raw = String(section?.content || '').replace(/\r\n/g, '\n').trim();
+                if (!raw) continue;
+
+                const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+                for (const line of lines) {
+                    if (collected.length >= maxLines) break;
+                    collected.push(line.length > 46 ? line.slice(0, 46) + '...' : line);
+                }
+
+                if (collected.length >= maxLines) break;
+            }
+
+            return collected.join('\n').trim();
+        };
+
+        // 检测“全局标题区”：第一段只有标题/适合等元信息时，后续卡片复用同一个标题区
+        let globalHeader = null;
+        let contentSections = usableSections;
+        if (usableSections.length > 1 && typeof window.visualGenerator.parseContent === 'function') {
+            const firstRaw = String(usableSections[0]?.content || '').replace(/\r\n/g, '\n').trim();
+            const normalizedFirstRaw = firstRaw.replace(/^\s*(?:(?:✅|☑️|✔️|👉|💡|🔥|⭐️|⭐|🌟|🟢|🔸|🔹|🔻|🔺|▶︎|▶|→)|[-*•·])\s*/gm, '');
+            const firstParsed = window.visualGenerator.parseContent(firstRaw);
+            const nonEmptyLines = firstRaw.split('\n').map(l => l.trim()).filter(Boolean);
+            const bodyLen = String(firstParsed?.body || '').trim().length;
+            const headerSignals = /(?:^|\n)\s*(?:标题|Title)\s*[:：]/i.test(normalizedFirstRaw) ||
+                /(?:^|\n)\s*(适合|适用|适用人群|人群|对象|场景|适用于)\s*[:：]/.test(normalizedFirstRaw) ||
+                !!String(firstParsed?.kicker || '').trim();
+
+            if (headerSignals && String(firstParsed?.title || '').trim() && bodyLen < 16 && nonEmptyLines.length <= 3) {
+                globalHeader = {
+                    title: String(firstParsed.title || '').trim(),
+                    kicker: String(firstParsed.kicker || '').trim()
+                };
+                contentSections = usableSections.slice(1);
+            }
+        }
+
+        const tasks = [];
+
+        if (globalHeader && contentSections.length > 0) {
+            // 如果“内容段落”数量足够覆盖 imageCount：每张复用全局标题区，避免封面空白
+            if (settings.imageCount <= contentSections.length) {
+                for (let index = 0; index < settings.imageCount; index++) {
+                    const section = contentSections[index];
+                    const rawBody = section?.content || fallbackContent;
+                    const sectionTitle = cleanSectionTitle(section?.title) || deriveTitleFromBody(rawBody) || `${template.name} - ${index + 1}`;
+
+                    tasks.push({
+                        index,
+                        sectionOriginalIndex: usableSections.indexOf(section),
+                        sectionTitle,
+                        contentToRender: buildContentWithHeader(globalHeader, rawBody)
+                    });
+                }
+            } else {
+                // 不足时：保留一张“封面”（标题区 + 摘要），其余按段落生成
+                const coverBody = buildCoverSummaryBody(contentSections.slice(0, 2), 6) ||
+                    contentSections[0]?.content ||
+                    fallbackContent;
+                tasks.push({
+                    index: 0,
+                    sectionOriginalIndex: 0,
+                    sectionTitle: cleanSectionTitle(globalHeader.title) || '封面',
+                    contentToRender: buildContentWithHeader(globalHeader, coverBody)
+                });
+
+                for (let index = 1; index < settings.imageCount; index++) {
+                    const section = contentSections[index - 1];
+                    const rawBody = section?.content || fallbackContent;
+                    const sectionTitle = cleanSectionTitle(section?.title) || deriveTitleFromBody(rawBody) || `${template.name} - ${index + 1}`;
+
+                    tasks.push({
+                        index,
+                        sectionOriginalIndex: section ? usableSections.indexOf(section) : undefined,
+                        sectionTitle,
+                        contentToRender: buildContentWithHeader(globalHeader, rawBody)
+                    });
                 }
             }
         } else {
-            // 没有分段信息，使用完整内容生成
-            const contentToUse = window.previewSystem?.stepData?.optimizedContent ||
-                               window.previewSystem?.stepData?.content ||
-                               prompt;
+            for (let index = 0; index < settings.imageCount; index++) {
+                const section = usableSections[index] || sections[index];
+                const title = section?.title || '';
+                const raw = section?.content || fallbackContent;
+                const contentToRender = buildCleanContent(raw, title);
 
-            for (let i = 0; i < settings.imageCount; i++) {
-                try {
-                    const imageData = await window.advancedImageGenerator.generateImage(
-                        contentToUse,
-                        template,
-                        {
-                            aspectRatio: settings.aspectRatio,
-                            quality: settings.quality,
-                            imageStyle: settings.imageStyle,
-                            backgroundStyle: styleOptions.backgroundStyle,
-                            backgroundPattern: styleOptions.backgroundPattern,
-                            decorationLevel: styleOptions.decorationLevel,
-                            addWatermark: styleOptions.addWatermark
-                        }
-                    );
+                const parsedMeta = typeof window.visualGenerator.parseContent === 'function'
+                    ? window.visualGenerator.parseContent(String(contentToRender || '').trim())
+                    : { title: cleanSectionTitle(title) };
 
-                    results.push({
-                        url: imageData.url,
-                        blob: imageData.blob,
-                        width: imageData.width,
-                        height: imageData.height,
-                        prompt: prompt,
-                        variation: i + 1
-                    });
+                tasks.push({
+                    index,
+                    sectionOriginalIndex: section ? sections.indexOf(section) : undefined,
+                    sectionTitle: String(parsedMeta?.title || '').trim() || cleanSectionTitle(title) || `${template.name} - ${index + 1}`,
+                    contentToRender
+                });
+            }
+        }
 
-                    if (window.uiManager) {
-                        const progress = Math.round(((i + 1) / settings.imageCount) * 70) + 10;
-                        window.uiManager.updateProgress(progress, `正在生成第 ${i + 1} 张图片...`);
-                    }
+        for (const task of tasks) {
+            const imageData = await window.visualGenerator.generateCard(
+                task.contentToRender,
+                template,
+                tone,
+                combinedTags,
+                settings
+            );
 
-                } catch (error) {
-                    DEBUG.error(`生成第 ${i + 1} 张图片失败:`, error);
-                    results.push(await this.generateMockImage(prompt, i + 1, settings));
-                }
+            results.push({
+                url: imageData.url,
+                blob: imageData.blob,
+                width: imageData.width,
+                height: imageData.height,
+                prompt: prompt,
+                sectionTitle: task.sectionTitle,
+                sectionIndex: typeof task.sectionOriginalIndex === 'number' ? task.sectionOriginalIndex : undefined,
+                variation: task.index + 1
+            });
+
+            if (window.uiManager) {
+                const progress = Math.round(((task.index + 1) / tasks.length) * 70) + 10;
+                window.uiManager.updateProgress(progress, `正在生成第 ${task.index + 1} 张图片...`);
             }
         }
 
@@ -703,12 +940,17 @@ ${sectionTitle ? `小节标题：${sectionTitle}` : ''}
 
         for (let i = 0; i < results.length; i++) {
             const result = results[i];
+
+            const sectionTitle = String(result.sectionTitle || '').trim();
+            const displayTitle = sectionTitle
+                ? sectionTitle
+                : `${template.name} - ${i + 1}`;
             
             const imageData = {
                 id: Utils.generateId('img'),
                 url: result.url,
                 blob: result.blob,
-                title: `${template.name} - ${i + 1}`,
+                title: displayTitle.length > 32 ? displayTitle.slice(0, 32) + '...' : displayTitle,
                 prompt: result.prompt,
                 template: template.name,
                 content: content.substring(0, 50) + '...',
