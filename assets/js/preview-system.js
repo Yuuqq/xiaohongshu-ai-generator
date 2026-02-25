@@ -22,6 +22,7 @@ class PreviewSystem {
         this.previewUpdateTimeout = null;
         this._initialized = false;
         this._step2EventsBound = false;
+        this.generationStartTime = null;
         this.init();
     }
 
@@ -655,8 +656,24 @@ class PreviewSystem {
      * 更新预览
      */
     updatePreview() {
-        // 这里可以添加实时预览更新逻辑
         DEBUG.log('更新预览:', this.stepData);
+
+        // 更新内容预览面板（Step 1）
+        this.updateContentPreview();
+
+        // 更新步骤2状态指示
+        const styleStatus = document.getElementById('styleStatus');
+        if (styleStatus) {
+            const hasTone = !!this.stepData.tone;
+            const hasTemplate = !!this.stepData.template;
+            if (hasTone && hasTemplate) {
+                styleStatus.textContent = '已完成';
+            } else if (hasTone || hasTemplate) {
+                styleStatus.textContent = '部分完成';
+            } else {
+                styleStatus.textContent = '待选择';
+            }
+        }
     }
 
     /**
@@ -974,6 +991,69 @@ class PreviewSystem {
      */
     editOptimizedContent() {
         DEBUG.log('编辑优化后的内容');
+
+        const optimizedContentEl = document.getElementById('optimizedContent');
+        if (!optimizedContentEl) return;
+
+        const currentContent = this.stepData.optimizedContent || '';
+
+        // 替换显示区域为可编辑的 textarea
+        optimizedContentEl.innerHTML = `
+            <textarea class="edit-textarea" id="editOptimizedTextarea" 
+                style="width:100%;min-height:200px;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px;line-height:1.8;resize:vertical;font-family:inherit;"
+            >${Utils.escapeHtml(String(currentContent))}</textarea>
+            <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end;">
+                <button id="cancelEditBtn" class="text-button" style="padding:6px 16px;">
+                    <span class="material-icons" style="font-size:16px;vertical-align:middle;">close</span>
+                    取消
+                </button>
+                <button id="saveEditBtn" class="primary-button" style="padding:6px 16px;">
+                    <span class="material-icons" style="font-size:16px;vertical-align:middle;">check</span>
+                    保存
+                </button>
+            </div>
+        `;
+
+        const textarea = document.getElementById('editOptimizedTextarea');
+        const saveBtn = document.getElementById('saveEditBtn');
+        const cancelBtn = document.getElementById('cancelEditBtn');
+
+        if (textarea) {
+            textarea.focus();
+        }
+
+        // 保存编辑
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                const newContent = textarea.value.trim();
+                if (newContent) {
+                    this.stepData.optimizedContent = newContent;
+                    // 重新显示优化内容
+                    const safeContent = Utils.escapeHtml(String(newContent)).replace(/\n/g, '<br>');
+                    optimizedContentEl.innerHTML = `<div class="content-text">${safeContent}</div>`;
+                    if (window.uiManager) {
+                        window.uiManager.showToast('内容已更新', 'success');
+                    }
+                    // 确保下一步按钮启用
+                    const nextBtn = document.getElementById('nextStep3');
+                    if (nextBtn) {
+                        nextBtn.disabled = false;
+                    }
+                } else {
+                    if (window.uiManager) {
+                        window.uiManager.showToast('内容不能为空', 'warning');
+                    }
+                }
+            });
+        }
+
+        // 取消编辑 - 恢复原内容显示
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                const safeContent = Utils.escapeHtml(String(currentContent)).replace(/\n/g, '<br>');
+                optimizedContentEl.innerHTML = `<div class="content-text">${safeContent}</div>`;
+            });
+        }
     }
 
     /**
@@ -1013,6 +1093,7 @@ class PreviewSystem {
 
             const contentToUse = this.stepData.optimizedContent || this.stepData.content;
             const startTime = Date.now();
+            this.generationStartTime = startTime;
 
             // 清空旧的生成结果，保证“生成数量”直观一致
             if (window.app?.clearGeneratedImages) {
@@ -1188,6 +1269,7 @@ class PreviewSystem {
 
             // 记录开始时间
             const startTime = Date.now();
+            this.generationStartTime = startTime;
 
             // 使用优化后的内容或原始内容
             const contentToUse = this.stepData.optimizedContent || this.stepData.content;
@@ -1519,8 +1601,16 @@ class PreviewSystem {
      * 计算生成时间
      */
     calculateGenerationTime() {
-        // 这里可以根据实际情况计算，暂时返回模拟值
-        return '3s';
+        if (!this.generationStartTime) {
+            return '0s';
+        }
+        const elapsed = Math.round((Date.now() - this.generationStartTime) / 1000);
+        if (elapsed < 60) {
+            return `${elapsed}s`;
+        }
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        return `${minutes}m${seconds}s`;
     }
 
     /**
