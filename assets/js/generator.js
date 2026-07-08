@@ -201,6 +201,17 @@ class ImageGenerator {
                 }
             }
 
+            // 优先检测是否为极简/技术精美/数据展示等 SVG 模板，采用矢量渲染提供顶级精细度与排版
+            const isSvgTemplate = ['xiaohongshu-tech-premium', 'xiaohongshu-minimalist', 'xiaohongshu-data-showcase', 'xiaohongshu-tutorial-card', 'xiaohongshu-lifestyle'].includes(settings.template?.id);
+            if (isSvgTemplate && window.premiumCardGenerator && settings.useSvgGenerator !== false) {
+                return await this.generateWithSvgGenerator(prompt, settings);
+            }
+
+            // 优先使用现代图片生成器 (HTML2Canvas + MD 3.0)，视觉效果极佳，拒绝单调丑陋
+            if (window.modernImageGenerator && settings.useModernGenerator !== false) {
+                return await this.generateWithModernGenerator(prompt, settings);
+            }
+
             // 本地视觉生成器（Canvas）：中文排版更稳定，优先于 Fabric 方案
             if (window.visualGenerator && settings.useVisualGenerator !== false) {
                 return await this.generateWithVisualGenerator(prompt, settings);
@@ -513,6 +524,397 @@ ${sectionTitle ? `小节标题：${sectionTitle}` : ''}
             } catch (error) {
                 DEBUG.error(`生成第 ${i + 1} 张图片失败:`, error);
                 results.push(await this.generateMockImage(prompt, i + 1, settings));
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * 获取 SVG 模板 ID
+     */
+    getSvgTemplateId(templateId) {
+        const mapping = {
+            'xiaohongshu-minimalist': 'minimalist-svg',
+            'xiaohongshu-tech-premium': 'tech-premium',
+            'xiaohongshu-data-showcase': 'data-showcase-svg',
+            'xiaohongshu-tutorial-card': 'editorial-serif-svg',
+            'xiaohongshu-lifestyle': 'lifestyle-premium'
+        };
+        return mapping[templateId] || 'minimalist-svg';
+    }
+
+    /**
+     * 使用 SVG 智能卡片生成器生成图片
+     */
+    async generateWithSvgGenerator(prompt, settings) {
+        if (!window.premiumCardGenerator) {
+            throw new Error('SVG 卡片生成器未初始化');
+        }
+
+        const results = [];
+        const template = settings.template || window.templateManager?.getSelectedTemplate() || { id: 'xiaohongshu-minimalist', name: '极简模板', category: 'minimalist' };
+        
+        const customTags = Array.isArray(settings.customTags)
+            ? settings.customTags
+            : (window.previewSystem?.stepData?.customTags || []);
+        const sections = window.previewSystem?.stepData?.contentAnalysis?.sections || [];
+        const fallbackContent = window.previewSystem?.stepData?.optimizedContent || window.previewSystem?.stepData?.content || prompt;
+
+        const cleanSectionTitle = (rawTitle) => {
+            let title = String(rawTitle || '').replace(/\r\n/g, '\n').trim();
+            if (!title) return '';
+            if (title.includes('\n')) {
+                title = title.split('\n')[0].trim();
+            }
+            return title.replace(/^(?:✅|☑️|✔️|👉|💡|🔥|⭐️|⭐|🌟|🟢|🔸|🔹|🔻|🔺|▶︎|▶|→|[-*•·])\s*/, '').trim();
+        };
+
+        const usableSections = Array.isArray(sections)
+            ? sections.filter(s => s?.content && s.content.trim())
+            : [];
+
+        const tasks = [];
+        for (let index = 0; index < settings.imageCount; index++) {
+            const section = usableSections[index] || sections[index];
+            const title = section?.title || '';
+            const raw = section?.content || fallbackContent;
+            
+            tasks.push({
+                index,
+                sectionOriginalIndex: section ? sections.indexOf(section) : undefined,
+                sectionTitle: cleanSectionTitle(title) || `${template.name} - ${index + 1}`,
+                contentToRender: raw
+            });
+        }
+
+        const svgTemplateId = this.getSvgTemplateId(template.id);
+
+        for (const task of tasks) {
+            try {
+                // 调用 premiumCardGenerator 生成高质量的 SVG 渲染并转化为 PNG URL/Blob
+                const cardData = await window.premiumCardGenerator.generatePremiumCard(
+                    task.contentToRender,
+                    svgTemplateId,
+                    {
+                        aspectRatio: settings.aspectRatio,
+                        quality: settings.quality,
+                        imageStyle: settings.imageStyle
+                    }
+                );
+
+                results.push({
+                    url: cardData.url,       // 转换后的 PNG Data URL
+                    blob: cardData.blob,     // 转换后的 PNG Blob
+                    width: cardData.width,
+                    height: cardData.height,
+                    prompt: prompt,
+                    sectionTitle: task.sectionTitle,
+                    sectionIndex: typeof task.sectionOriginalIndex === 'number' ? task.sectionOriginalIndex : undefined,
+                    variation: task.index + 1
+                });
+
+                if (window.uiManager) {
+                    const progress = Math.round(((task.index + 1) / tasks.length) * 70) + 10;
+                    window.uiManager.updateProgress(progress, `正在生成第 ${task.index + 1} 张图片...`);
+                }
+            } catch (error) {
+                DEBUG.error(`生成第 ${task.index + 1} 张 SVG 图片失败:`, error);
+                results.push(await this.generateMockImage(prompt, task.index + 1, settings));
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * 获取 Material Design 3.0 模板 ID
+     */
+    getMaterialTemplateId(templateId) {
+        const mapping = {
+            'xiaohongshu-lifestyle': 'material-lifestyle',
+            'xiaohongshu-fashion': 'material-lifestyle',
+            'xiaohongshu-food': 'material-lifestyle',
+            'xiaohongshu-travel': 'material-nature',
+            'xiaohongshu-product': 'material-lifestyle',
+            'xiaohongshu-fitness': 'material-nature',
+            'xiaohongshu-minimalist': 'material-nature',
+            'xiaohongshu-knowledge': 'material-tech',
+            'xiaohongshu-tech-premium': 'material-tech-card',
+            'xiaohongshu-data-showcase': 'material-tech-card',
+            'xiaohongshu-tutorial-card': 'material-tech-card'
+        };
+        return mapping[templateId] || 'material-lifestyle';
+    }
+
+    /**
+     * 使用现代图片生成器 (HTML2Canvas + Material Design 3.0) 生成卡片图片
+     */
+    async generateWithModernGenerator(prompt, settings) {
+        if (!window.modernImageGenerator) {
+            throw new Error('现代图片生成器未初始化');
+        }
+
+        const results = [];
+        const template = settings.template || window.templateManager?.getSelectedTemplate() || { id: 'xiaohongshu-lifestyle', name: '默认模板', category: 'lifestyle' };
+        const tone = settings.tone || 'friendly';
+        const customTags = Array.isArray(settings.customTags)
+            ? settings.customTags
+            : (window.previewSystem?.stepData?.customTags || []);
+        const sections = window.previewSystem?.stepData?.contentAnalysis?.sections || [];
+        const fallbackContent = window.previewSystem?.stepData?.optimizedContent || window.previewSystem?.stepData?.content || prompt;
+
+        const cleanSectionTitle = (rawTitle) => {
+            let title = String(rawTitle || '').replace(/\r\n/g, '\n').trim();
+            if (!title) return '';
+
+            // 只取首行，避免段落标题带入换行
+            if (title.includes('\n')) {
+                title = title.split('\n')[0].trim();
+            }
+
+            title = title
+                .replace(/^(?:✅|☑️|✔️|👉|💡|🔥|⭐️|⭐|🌟|🟢|🔸|🔹|🔻|🔺|▶︎|▶|→|[-*•·])\s*/, '')
+                .replace(/^\s*(?:标题|Title)\s*[:：]\s*/i, '')
+                .replace(/\.\.\.$/, '')
+                .replace(/…$/, '')
+                .replace(/^#{1,6}\s+/, '')
+                .replace(/^[（\(][一二三四五六七八九十\d]+[）\)]\s*/, '')
+                .replace(/^\d{1,2}[\.\)、\)）]\s*/, '')
+                .replace(/^[一二三四五六七八九十]+[\.\、]\s*/, '')
+                .replace(/[：:]$/, '')
+                .trim();
+
+            return title;
+        };
+
+        const buildCleanContent = (rawText, fallbackTitle = '') => {
+            const safeRaw = String(rawText || '').replace(/\r\n/g, '\n').trim();
+            if (!safeRaw) return '';
+
+            const parsed = typeof window.visualGenerator?.parseContent === 'function'
+                ? window.visualGenerator.parseContent(safeRaw)
+                : { title: '', kicker: '', body: safeRaw };
+
+            const title = String(parsed?.title || '').trim() || cleanSectionTitle(fallbackTitle);
+            const kicker = String(parsed?.kicker || '').trim();
+            const body = String(parsed?.body || '').trim();
+
+            // 单行内容时不强行拆标题/正文，避免出现“标题有了但正文空了”的尴尬
+            if (!body && safeRaw.split('\n').filter(l => l.trim()).length <= 1) {
+                return safeRaw;
+            }
+
+            const lines = [];
+            if (title) lines.push(`标题：${title}`);
+            if (kicker) lines.push(kicker);
+            if (body) {
+                if (lines.length > 0) lines.push('');
+                lines.push(body);
+            }
+            return lines.join('\n').trim();
+        };
+
+        const inheritedTags = (() => {
+            try {
+                if (typeof window.visualGenerator?.extractHashtags === 'function') {
+                    return window.visualGenerator.extractHashtags(fallbackContent).tags || [];
+                }
+            } catch (error) {
+                DEBUG.warn('提取全局标签失败:', error);
+            }
+            return [];
+        })();
+
+        const combinedTags = [...customTags, ...inheritedTags];
+
+        const isHashtagOnlyContent = (text) => {
+            const raw = String(text || '').replace(/\r\n/g, '\n').trim();
+            if (!raw) return true;
+
+            if (typeof window.visualGenerator?.extractHashtags === 'function') {
+                const extracted = window.visualGenerator.extractHashtags(raw);
+                const withoutTags = String(extracted?.text || '').replace(/\s+/g, '').trim();
+                const tags = Array.isArray(extracted?.tags) ? extracted.tags : [];
+                return tags.length > 0 && withoutTags.length === 0;
+            }
+
+            const stripped = raw
+                .replace(/#([A-Za-z0-9_\u4e00-\u9fff]+)/g, '')
+                .replace(/\s+/g, '')
+                .trim();
+            return stripped.length === 0 && /#/.test(raw);
+        };
+
+        const usableSections = Array.isArray(sections)
+            ? sections.filter(section => section?.content && !isHashtagOnlyContent(section.content))
+            : [];
+
+        const deriveTitleFromBody = (bodyText) => {
+            const firstLine = String(bodyText || '')
+                .replace(/\r\n/g, '\n')
+                .split('\n')
+                .map(l => l.trim())
+                .find(Boolean) || '';
+            return cleanSectionTitle(firstLine);
+        };
+
+        const buildContentWithHeader = (header, bodyText, maxLines = null) => {
+            const lines = [];
+            const headerTitle = cleanSectionTitle(header?.title) || String(header?.title || '').trim();
+            const headerKicker = String(header?.kicker || '').trim();
+
+            if (headerTitle) lines.push(`标题：${headerTitle}`);
+            if (headerKicker) lines.push(headerKicker);
+
+            let body = String(bodyText || '').replace(/\r\n/g, '\n').trim();
+            if (headerKicker && body.startsWith(headerKicker)) {
+                body = body.split('\n').slice(1).join('\n').trim();
+            }
+
+            if (typeof maxLines === 'number' && maxLines > 0 && body) {
+                const bodyLines = body.split('\n').map(l => l.trim()).filter(Boolean);
+                body = bodyLines.slice(0, maxLines).join('\n').trim();
+            }
+
+            if (body) {
+                if (lines.length > 0) lines.push('');
+                lines.push(body);
+            }
+
+            return lines.join('\n').trim();
+        };
+
+        const buildCoverSummaryBody = (sectionsToSummarize, maxLines = 6) => {
+            const collected = [];
+            const list = Array.isArray(sectionsToSummarize) ? sectionsToSummarize : [];
+
+            for (const section of list) {
+                const raw = String(section?.content || '').replace(/\r\n/g, '\n').trim();
+                if (!raw) continue;
+
+                const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+                for (const line of lines) {
+                    if (collected.length >= maxLines) break;
+                    collected.push(line.length > 46 ? line.slice(0, 46) + '...' : line);
+                }
+
+                if (collected.length >= maxLines) break;
+            }
+
+            return collected.join('\n').trim();
+        };
+
+        // 检测“全局标题区”：第一段只有标题/适合等元信息时，后续卡片复用同一个标题区
+        let globalHeader = null;
+        let contentSections = usableSections;
+        if (usableSections.length > 1 && typeof window.visualGenerator?.parseContent === 'function') {
+            const firstRaw = String(usableSections[0]?.content || '').replace(/\r\n/g, '\n').trim();
+            const normalizedFirstRaw = firstRaw.replace(/^\s*(?:(?:✅|☑️|✔️|👉|💡|🔥|⭐️|⭐|🌟|🟢|🔸|🔹|🔻|🔺|▶︎|▶|→)|[-*•·])\s*/gm, '');
+            const firstParsed = window.visualGenerator.parseContent(firstRaw);
+            const nonEmptyLines = firstRaw.split('\n').map(l => l.trim()).filter(Boolean);
+            const bodyLen = String(firstParsed?.body || '').trim().length;
+            const headerSignals = /(?:^|\n)\s*(?:标题|Title)\s*[:：]/i.test(normalizedFirstRaw) ||
+                /(?:^|\n)\s*(适合|适用|适用人群|人群|对象|场景|适用于)\s*[:：]/.test(normalizedFirstRaw) ||
+                !!String(firstParsed?.kicker || '').trim();
+
+            if (headerSignals && String(firstParsed?.title || '').trim() && bodyLen < 16 && nonEmptyLines.length <= 3) {
+                globalHeader = {
+                    title: String(firstParsed.title || '').trim(),
+                    kicker: String(firstParsed.kicker || '').trim()
+                };
+                contentSections = usableSections.slice(1);
+            }
+        }
+
+        const tasks = [];
+
+        if (globalHeader && contentSections.length > 0) {
+            if (settings.imageCount <= contentSections.length) {
+                for (let index = 0; index < settings.imageCount; index++) {
+                    const section = contentSections[index];
+                    const rawBody = section?.content || fallbackContent;
+                    const sectionTitle = cleanSectionTitle(section?.title) || deriveTitleFromBody(rawBody) || `${template.name} - ${index + 1}`;
+
+                    tasks.push({
+                        index,
+                        sectionOriginalIndex: usableSections.indexOf(section),
+                        sectionTitle,
+                        contentToRender: buildContentWithHeader(globalHeader, rawBody)
+                    });
+                }
+            } else {
+                const coverBody = buildCoverSummaryBody(contentSections.slice(0, 2), 6) ||
+                    contentSections[0]?.content ||
+                    fallbackContent;
+                tasks.push({
+                    index: 0,
+                    sectionOriginalIndex: 0,
+                    sectionTitle: cleanSectionTitle(globalHeader.title) || '封面',
+                    contentToRender: buildContentWithHeader(globalHeader, coverBody)
+                });
+
+                for (let index = 1; index < settings.imageCount; index++) {
+                    const section = contentSections[index - 1];
+                    const rawBody = section?.content || fallbackContent;
+                    const sectionTitle = cleanSectionTitle(section?.title) || deriveTitleFromBody(rawBody) || `${template.name} - ${index + 1}`;
+
+                    tasks.push({
+                        index,
+                        sectionOriginalIndex: section ? usableSections.indexOf(section) : undefined,
+                        sectionTitle,
+                        contentToRender: buildContentWithHeader(globalHeader, rawBody)
+                    });
+                }
+            }
+        } else {
+            for (let index = 0; index < settings.imageCount; index++) {
+                const section = usableSections[index] || sections[index];
+                const title = section?.title || '';
+                const raw = section?.content || fallbackContent;
+                const contentToRender = buildCleanContent(raw, title);
+
+                const parsedMeta = typeof window.visualGenerator?.parseContent === 'function'
+                    ? window.visualGenerator.parseContent(String(contentToRender || '').trim())
+                    : { title: cleanSectionTitle(title) };
+
+                tasks.push({
+                    index,
+                    sectionOriginalIndex: section ? sections.indexOf(section) : undefined,
+                    sectionTitle: String(parsedMeta?.title || '').trim() || cleanSectionTitle(title) || `${template.name} - ${index + 1}`,
+                    contentToRender
+                });
+            }
+        }
+
+        const materialTemplateId = this.getMaterialTemplateId(template.id);
+
+        for (const task of tasks) {
+            // 使用 window.modernImageGenerator 渲染 Material Design 3.0 美化卡片
+            const imageData = await window.modernImageGenerator.generateModernImage(
+                task.contentToRender,
+                materialTemplateId,
+                {
+                    aspectRatio: settings.aspectRatio,
+                    quality: settings.quality,
+                    imageStyle: settings.imageStyle
+                }
+            );
+
+            results.push({
+                url: imageData.url,
+                blob: imageData.blob,
+                width: imageData.width,
+                height: imageData.height,
+                prompt: prompt,
+                sectionTitle: task.sectionTitle,
+                sectionIndex: typeof task.sectionOriginalIndex === 'number' ? task.sectionOriginalIndex : undefined,
+                variation: task.index + 1
+            });
+
+            if (window.uiManager) {
+                const progress = Math.round(((task.index + 1) / tasks.length) * 70) + 10;
+                window.uiManager.updateProgress(progress, `正在生成第 ${task.index + 1} 张图片...`);
             }
         }
 

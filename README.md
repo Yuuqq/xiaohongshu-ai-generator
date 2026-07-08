@@ -47,6 +47,8 @@ Step 1          Step 2          Step 3          Step 4          Step 5
 📝 内容输入  →  🎨 风格选择  →  🤖 AI优化   →  👁️ 预览生成  →  💾 图片导出
 ```
 
+![主界面总览](docs/screenshots/01-home.png)
+
 **界面布局特点**（从上到下、从左到右）：
 
 - **顶部**：5步进度指示器（当前步骤高亮粉色）
@@ -119,10 +121,14 @@ npm run start
 - 实时预览区会立即显示当前文字在卡片上的排版效果
 - **小技巧**：先写核心卖点或故事，再让 AI 帮你润色成更吸引人的版本
 
+![Step 1 - 内容输入](docs/screenshots/02-step1-filled.png)
+
 ### Step 2 · 风格选择 🎨
 - **写作口吻**：种草、安利、科普、教程、情感、干货等
 - **视觉模板**：科技蓝、粉色好物、绿色旅行、橙色美食、简约黑白等
 - 选择后，预览会实时更新主题色、布局、装饰元素
+
+![Step 2 - 风格选择](docs/screenshots/03-step2.png)
 
 ### Step 3 · AI 智能优化 🤖
 - 点击「AI 智能优化」按钮
@@ -131,6 +137,8 @@ npm run start
   - 优化标题、添加钩子
   - 建议 emoji 位置
 - **离线模式**：如果 API 不可用，系统自动切换本地规则优化，依然可用
+
+![Step 3 - AI 智能优化](docs/screenshots/05-step3-optimized.png)
 
 ### Step 4 · 预览生成 👁️
 - 设置：
@@ -141,10 +149,14 @@ npm run start
 - 点击「生成预览」，Canvas 实时渲染多张不同变体
 - 每张都可以单独微调参数
 
+![Step 4 - 预览生成](docs/screenshots/07-step4-preview.png)
+
 ### Step 5 · 图片导出 💾
 - 一键「批量导出高清 PNG」
 - 图片自动下载到本地，文件名带时间戳和风格
 - 直接上传小红书即可发布!
+
+![Step 5 - 图片导出](docs/screenshots/08-step5-export.png)
 
 ---
 
