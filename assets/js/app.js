@@ -77,7 +77,7 @@ class AppState {
     // 获取应用状态
     getState() {
         return {
-            apiKey: this.apiKey,
+            apiKey: this.apiKey ? '********' : null,
             currentTemplate: this.currentTemplate,
             generatedImages: this.generatedImages,
             isGenerating: this.isGenerating,

@@ -434,21 +434,34 @@ ${content}
      * 调用 Gemini 文本模型
      */
     async makeGeminiRequest(model, payload) {
-        const response = await fetch(`${this.apiBase}/${model}:generateContent`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-goog-api-key': this.apiKey
-            },
-            body: JSON.stringify(payload)
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) {
-            throw new Error(data.error?.message || `Gemini 请求失败: ${response.status}`);
+        try {
+            const response = await fetch(`${this.apiBase}/${model}:generateContent`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': this.apiKey
+                },
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.error?.message || `Gemini 请求失败: ${response.status}`);
+            }
+
+            return data;
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error('Gemini API 请求超时');
+            }
+            throw error;
+        } finally {
+            clearTimeout(timeoutId);
         }
-
-        return data;
     }
 
     /**
