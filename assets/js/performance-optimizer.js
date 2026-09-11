@@ -226,24 +226,14 @@ class PerformanceOptimizer {
             this.cleanupObjectURLs();
         }, 60000); // 每分钟清理一次
 
-        // 页面隐藏时清理资源
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                this.performMemoryCleanup();
-            }
-        });
     }
 
     /**
      * 清理对象URL
      */
     cleanupObjectURLs() {
-        // 清理已经不在DOM中的图片的对象URL
-        document.querySelectorAll('img[src^="blob:"]').forEach(img => {
-            if (!document.body.contains(img)) {
-                URL.revokeObjectURL(img.src);
-            }
-        });
+        // 已经废弃：不再尝试通过 querySelectorAll 清理，因为 unmounted 节点不会被选中。
+        // 请确保在删除图片或重置状态时显式调用 URL.revokeObjectURL。
     }
 
     /**

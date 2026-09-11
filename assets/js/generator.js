@@ -1495,22 +1495,35 @@ ${sectionTitle ? `小节标题：${sectionTitle}` : ''}
     async makeApiRequest(url, data, apiKey = null) {
         const key = apiKey || this.apiKey;
         
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-goog-api-key': key
-            },
-            body: JSON.stringify(data)
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
-        const responseData = await response.json().catch(() => ({}));
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': key
+                },
+                body: JSON.stringify(data),
+                signal: controller.signal
+            });
 
-        if (!response.ok) {
-            throw new Error(responseData.error?.message || `API请求失败: ${response.status}`);
+            const responseData = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(responseData.error?.message || `API请求失败: ${response.status}`);
+            }
+
+            return responseData;
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error('API请求超时');
+            }
+            throw error;
+        } finally {
+            clearTimeout(timeoutId);
         }
-
-        return responseData;
     }
 
     /**
