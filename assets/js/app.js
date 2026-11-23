@@ -7,8 +7,8 @@
 const APP_CONFIG = {
     name: '小红书AI图片生成器',
     version: '1.0.0',
-    apiEndpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent',
-    imageApiEndpoint: 'https://generativelanguage.googleapis.com/v1beta/models/imagen-2:generateImage',
+    apiEndpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+    imageApiEndpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent',
     maxImages: 10,
     supportedFormats: ['PNG', 'JPEG', 'WebP'],
     maxContentLength: 1000
